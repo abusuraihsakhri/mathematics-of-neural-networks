@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>6. Backpropagation — Mathematics of Neural Networks</title>
+<meta name="description" content="The error of a neuron, the four equations of backpropagation with their derivations, the six-step algorithm, and a live XOR training laboratory.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">6. Backpropagation</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html" aria-current="page"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 6</p>
+  <h1>Backpropagation</h1>
+  <p class="standfirst">Chapter 4 differentiated one neuron. Here the same calculus is organised so it
+  works at any depth, in a single backward sweep: the error of a neuron, four equations, and the
+  algorithm they assemble into.</p>
+</header>
+
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; The Big Picture</span>
+  <p><strong>Backpropagation is corporate blame allocation:</strong></p>
+  <ul>
+    <li><strong>The Core Problem:</strong> If the company loses money (Cost \(C\)), who is responsible? The executive at the output doesn't know what every frontline worker did. Backpropagation computes the exact blame (\(\delta\)) for every single neuron, working backwards from top managers down to the factory floor!</li>
+    <li><strong>The Four Fundamental Equations (BP1–BP4):</strong>
+      <ol style="margin-top:0.4rem">
+        <li><strong>BP1 (Output Blame):</strong> \(\delta^L = \nabla_a C \odot \phi'(z^L)\) &mdash; Direct prediction error at the final output.</li>
+        <li><strong>BP2 (Blame Pullback):</strong> \(\delta^l = ((W^{l+1})\T \delta^{l+1}) \odot \phi'(z^l)\) &mdash; Pulls blame backward across layers through transposed weight matrices.</li>
+        <li><strong>BP3 (Bias Blame):</strong> \(\nabla_b C = \delta\) &mdash; Neuron biases absorb error directly.</li>
+        <li><strong>BP4 (Weight Blame):</strong> \(\nabla_W C = \delta (a^{\text{in}})\T\) &mdash; Blame on a connection equals the outgoing error times the incoming activity!</li>
+      </ol>
+    </li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. The Customer Deficit</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <rect x="25" y="15" width="30" height="30" rx="4" fill="var(--surface-2)" stroke="var(--rose)" stroke-width="2"/>
+      <text x="40" y="34" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)">&delta;ᴸ</text>
+    </svg>
+    <h5>BP1: Output Error</h5>
+    <p>Compare company's product against customer expectation: direct deficit seed.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Megaphone Pullback</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <polygon points="20,22 55,10 55,50 20,38" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.5"/>
+      <line x1="55" y1="30" x2="68" y2="30" stroke="var(--amber)" stroke-width="2.5"/>
+    </svg>
+    <h5>BP2: Transposed Blame</h5>
+    <p>Pull blame backwards through transposed wires (W)ᵀ to earlier department managers.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Turn The Knobs</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="40" cy="30" r="18" fill="var(--surface-2)" stroke="var(--emerald)" stroke-width="2"/>
+      <line x1="40" y1="30" x2="50" y2="20" stroke="var(--emerald)" stroke-width="3"/>
+      <circle cx="40" cy="30" r="3" fill="var(--emerald)"/>
+    </svg>
+    <h5>BP3 &amp; BP4: Parameter Update</h5>
+    <p>Blame on a connection equals error times activity: \(\nabla W = \delta a\T\)!</p>
+  </div>
+</div>
+
+<!-- Master Pictorial Infographic: Backpropagation and Chain Rule Flow -->
+<div class="panel" style="margin: 2.2rem 0; overflow: hidden; border: 1px solid var(--rule-firm);">
+  <div class="panel-head" style="background: var(--surface-2);">
+    <h4>🖼️ Pictorial Guide: Backpropagation &amp; The Chain Rule Flow</h4>
+    <span class="hint">Forward signal activation vs backward error sensitivity cascade</span>
+  </div>
+  <div class="panel-body" style="padding: 1.2rem;">
+    <div style="border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--rule); margin-bottom: 1rem;">
+      <img src="../assets/backprop-chain-rule.jpg" alt="Backpropagation &amp; The Chain Rule Flow Infographic" style="width: 100%; height: auto; display: block;">
+    </div>
+    <div class="diagram-caption" style="font-size: 0.92rem; line-height: 1.6;">
+      <b>Closed-Loop Dual Information Flow:</b>
+      <strong>Forward Pass (blue arrows):</strong> Signals flow left-to-right through matrix affine projections \(z = W\mathbf{x} + \mathbf{b}\) and non-linear activation gates \(a = \sigma(z)\) to form predictions \(\hat{y}\).
+      <strong>Backward Pass (orange arrows):</strong> Cost evaluation \(C\) generates error deficit \(\delta^L\) at the output. Error sensitivities pull backward layer-by-layer through transposed weights \((W^l)^\top\), multiplying by local gate slopes \(\phi'(z^l)\) like interlocking mechanical gears.
+      Parameter updates (\(\nabla_W C = \delta a^\top\)) then nudge weights along the downhill gradient.
+    </div>
+  </div>
+</div>
+
+<!-- Visual Formula Decoder for BP2 -->
+<div class="visual-decoder">
+  <span class="decoder-title">Visual Formula Decoder &middot; BP2 Master Pullback Equation</span>
+  <div class="formula-hero">
+    <span style="color:var(--accent)">\(\delta^l\)</span> =
+    \( \Bigl( \)
+      <span style="color:var(--rose)">\(\bigl(W^{l+1}\bigr)^\top\)</span>
+      <span style="color:var(--amber)">\(\delta^{l+1}\)</span>
+    \( \Bigr) \)
+    <span style="color:var(--ink-muted);margin: 0 .3rem">\(\odot\)</span>
+    <span style="color:var(--emerald)">\(\phi'(z^l)\)</span>
+  </div>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">\(\delta^l\) (Hidden Layer Blame)</span>
+      <span class="symbol-desc">Layer Node Errors</span>
+      <p>Error allocated to layer \(l\) neurons. Measures how much nudging \(z^l\) moves final cost.</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">\((W^{l+1})^\top\) (Wires in Reverse)</span>
+      <span class="symbol-desc">Transpose Pullback</span>
+      <p>Transposing the weight matrix swaps rows and columns, turning forward push into backward pull!</p>
+    </div>
+    <div class="decoder-card amber">
+      <span class="term" style="color:var(--amber)">\(\delta^{l+1}\) (Downstream Blame)</span>
+      <span class="symbol-desc">Inherited Error</span>
+      <p>The error already calculated in the layer ahead, being passed back down the pipeline.</p>
+    </div>
+    <div class="decoder-card emerald">
+      <span class="term" style="color:var(--emerald)">\(\phi'(z^l)\) (Local Gate Valve)</span>
+      <span class="symbol-desc">Activation Sensitivity</span>
+      <p>Activation derivative. If neuron was saturated or dead, this factor kills the incoming gradient!</p>
+    </div>
+  </div>
+</div>
+
+<div class="analogy-grid">
+  <div class="analogy-card physical">
+    <h4>Corporate Blame Delegation</h4>
+    <ul>
+      <li><strong>CEO at Output:</strong> Compares company revenue against budget target ($a^L - y$).</li>
+      <li><strong>Vice Presidents:</strong> Scolded in proportion to how much their division contributed ($(W^{L})\T \delta^L$).</li>
+      <li><strong>Frontline Workers:</strong> Held accountable only if their advice was followed and the outcome was disastrous!</li>
+    </ul>
+  </div>
+  <div class="analogy-card math">
+    <h4>Mathematical Backpropagation</h4>
+    <ul>
+      <li><strong>BP1:</strong> $\delta^L = (a^L - y) \odot \phi'(z^L)$ seeds the error at the loss boundary.</li>
+      <li><strong>BP2:</strong> $\delta^l = ((W^{l+1})\T \delta^{l+1}) \odot \phi'(z^l)$ pulls error backward layer-by-layer.</li>
+      <li><strong>BP4:</strong> $\nabla_{W^l} C = \delta^l (a^{l-1})\T$ scales weight updates by input activations.</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="why-backward">Why not just go forwards?</h2>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 620 220" width="100%" role="img" aria-label="Figure 6.1: Spatial map of the four backpropagation equations">
+    <defs>
+      <marker id="arrBw" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="var(--rose)"/>
+      </marker>
+      <marker id="arrFw" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="var(--accent)"/>
+      </marker>
+    </defs>
+    <!-- Forward signal flow top -->
+    <path d="M 60,30 L 540,30" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 4" marker-end="url(#arrFw)"/>
+    <text x="300" y="22" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)">FORWARD PASS: x &rarr; z¹ &rarr; a¹ &rarr; z² &rarr; a² &rarr; Cost C</text>
+
+    <!-- Backward error flow bottom -->
+    <path d="M 540,195 L 60,195" stroke="var(--rose)" stroke-width="2" marker-end="url(#arrBw)"/>
+    <text x="300" y="212" text-anchor="middle" font-size="11" font-weight="600" fill="var(--rose)">BACKWARD PASS: &part;C/&part;a² &rarr; &delta;² (BP1) &rarr; &delta;¹ (BP2) &rarr; Parameter Gradients (BP3, BP4)</text>
+
+    <!-- Layers -->
+    <!-- Input layer -->
+    <g transform="translate(60, 60)">
+      <rect width="65" height="105" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)"/>
+      <text x="32" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">Input</text>
+      <circle cx="32" cy="50" r="12" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="32" y="54" text-anchor="middle" font-size="10" fill="var(--ink)">x₁</text>
+      <circle cx="32" cy="82" r="12" fill="var(--surface)" stroke="var(--accent)" stroke-width="1.5"/>
+      <text x="32" y="86" text-anchor="middle" font-size="10" fill="var(--ink)">x₂</text>
+    </g>
+
+    <!-- Hidden layer -->
+    <g transform="translate(240, 50)">
+      <rect width="90" height="125" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)"/>
+      <text x="45" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">Layer 1 (Hidden)</text>
+      <circle cx="45" cy="55" r="13" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <text x="45" y="59" text-anchor="middle" font-size="10" fill="var(--ink)">a¹₁</text>
+      <circle cx="45" cy="95" r="13" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <text x="45" y="99" text-anchor="middle" font-size="10" fill="var(--ink)">a¹₂</text>
+      <!-- BP3 callout -->
+      <rect x="2" y="112" width="86" height="12" fill="var(--accent-soft)" rx="2"/>
+      <text x="45" y="121" text-anchor="middle" font-size="9" font-weight="700" fill="var(--accent-ink)">BP3: &nabla;b¹ = &delta;¹</text>
+    </g>
+
+    <!-- Output layer -->
+    <g transform="translate(450, 60)">
+      <rect width="95" height="105" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)"/>
+      <text x="47" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">Layer 2 (Output)</text>
+      <circle cx="47" cy="65" r="14" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2"/>
+      <text x="47" y="69" text-anchor="middle" font-size="10" fill="var(--ink)">ŷ</text>
+      <!-- BP1 callout -->
+      <rect x="2" y="90" width="91" height="14" fill="var(--emerald-soft)" rx="2"/>
+      <text x="47" y="100" text-anchor="middle" font-size="9" font-weight="700" fill="var(--emerald-ink)">BP1: &delta;² = e &odot; &phi;'(z²)</text>
+    </g>
+
+    <!-- Connections & BP equations -->
+    <!-- W1 / BP4 callout -->
+    <line x1="125" y1="100" x2="240" y2="100" stroke="var(--rule-firm)" stroke-width="2"/>
+    <rect x="135" y="85" width="95" height="18" fill="var(--surface)" stroke="var(--rule-firm)" rx="3"/>
+    <text x="182" y="98" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)">BP4: &nabla;W¹ = &delta;¹ xᵀ</text>
+
+    <!-- W2 / BP2 callout -->
+    <line x1="330" y1="100" x2="450" y2="100" stroke="var(--rose)" stroke-width="2" stroke-dasharray="3 3"/>
+    <rect x="338" y="70" width="105" height="28" fill="var(--rose-soft)" stroke="var(--rose)" rx="3"/>
+    <text x="390" y="83" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--rose-ink)">BP2 Pullback:</text>
+    <text x="390" y="94" text-anchor="middle" font-size="8.5" fill="var(--rose-ink)">&delta;¹ = ((W²)\u1D40&delta;²) &odot; &phi;'(z¹)</text>
+  </svg>
+  <div class="diagram-caption"><strong>Figure 6.1:</strong> Spatial architecture of the four backpropagation equations. BP1 computes error at the output layer; BP2 pulls that error backward layer-by-layer; BP3 and BP4 convert errors into bias and weight gradients.</div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Metaphor: The Corporate Blame Chain &amp; Acoustic Megaphone</span>
+  <p>Consider a multi-tiered corporation: an executive compares the company's shipped product (\(\hat{y}\)) against market demand (Target \(y\)). The shortfall is \(\hat{y} - y\).</p>
+  <p>The executive doesn't bypass hierarchy to yell at every frontline factory worker individually. Instead, they assign blame to division managers in proportion to how heavily each division contributed (via transposed connection weights \((W)\T\)). Each division manager then reprimands their team leads, who reprimand frontline workers.</p>
+  <p><strong>BP4</strong> specifies the exact parameter update: if an employee shouted a loud recommendation (\(a_k\) was huge) and the receiving manager incurred massive error (\(\delta_j\) was large), that specific link is severely held accountable! If the employee was silent (\(a_k = 0\)), their connection receives zero blame.</p>
+</div>
+
+<p>Take a network with three layers — three inputs, then three neurons, then four, then one output.
+To find how the cost depends on the first weight matrix, the chain rule offers an obvious route:</p>
+
+<div class="eq" data-n="6.1">\[ \frac{\partial C}{\partial W^1}=\frac{\partial C}{\partial a^3}\;\frac{\partial a^3}{\partial a^2}\;\frac{\partial a^2}{\partial a^1}\;\frac{\partial a^1}{\partial W^1} \]</div>
+
+<p>Correct, and it works. Now do \(W^2\):</p>
+
+<div class="eq" data-n="6.2">\[ \frac{\partial C}{\partial W^2}=\frac{\partial C}{\partial a^3}\;\frac{\partial a^3}{\partial a^2}\;\frac{\partial a^2}{\partial W^2} \]</div>
+
+<p>Notice the waste. The factors \(\partial C/\partial a^3\) and \(\partial a^3/\partial a^2\) were
+already computed for 6.1 and are being recomputed here. Do this for every parameter in a deep network
+and most of the arithmetic is repetition — the same upper-layer sensitivities calculated again and
+again, once per parameter below them.</p>
+
+<div class="note beyond">
+  <span class="label">The cost argument, stated properly</span>
+  <p>This is not just inelegance. Sweeping forwards, each parameter needs its own pass through
+  the layers above it, so computing all \(P\) partial derivatives costs roughly \(P\) passes. For a
+  network with a million parameters, that is a million passes per training step.</p>
+  <p>Sweeping backwards, one forward pass plus one backward pass yields <strong>all \(P\)
+  derivatives</strong>, and the backward pass costs about the same as the forward one. So the whole
+  gradient is obtained for roughly twice the price of a single prediction — independent of \(P\).</p>
+  <p>That ratio is the entire reason deep learning is computationally possible. Backpropagation is
+  the neural-network name for <em>reverse-mode automatic differentiation</em>, and this is its
+  defining property: cheap when outputs are few and parameters are many, which is exactly the shape
+  of a machine learning problem.</p>
+</div>
+
+<p>Going backwards, we accumulate. Start at the cost, walk one layer back and record what we learn,
+walk another layer back reusing what we recorded. Each layer is visited once. What gets accumulated
+and carried is the quantity defined next.</p>
+
+<h2 id="node-error">The error of a neuron</h2>
+
+<div class="note def">
+  <span class="label">Definition</span>
+  <p>The <strong>error</strong> of neuron \(j\) in layer \(l\) is the sensitivity of the cost to that
+  neuron's pre-activation:</p>
+  <div class="eq">\[ \delta^l_j \;=\; \frac{\partial C}{\partial z^l_j} \]</div>
+  <p>Stacked over the layer, \(\delta^l\) is an \(n_l\times1\) vector.</p>
+</div>
+
+<p>Two things about this definition deserve a pause.</p>
+
+<p><strong>Why \(z\) and not \(a\)?</strong> Mostly convenience — the algebra comes out cleaner —
+and it also places the quantity at exactly the right point in the chain. Every parameter of neuron
+\(j\) feeds into \(z^l_j\) and nothing else, so once you know how \(C\) responds to \(z^l_j\), one
+short step gets you to the weights and the bias. Defining the error at \(a\) would leave the
+activation derivative dangling on the wrong side of every subsequent formula.</p>
+
+<p><strong>Why call it "error"?</strong> Read the derivative as a claim about blame. If
+\(\delta^l_j\approx0\), perturbing this neuron's pre-activation barely moves the cost: the neuron is
+not responsible for much of the current error. If \(\delta^l_j\) is large, a small change here swings
+the cost substantially — this neuron amplifies whatever passes through it, and a large share of the
+total error can be attributed to it.</p>
+
+<div class="note intuition">
+  <span class="label">A more accurate name</span>
+  <p>"Error of a neuron" is conventional but slightly misleading; "influence of a neuron on the cost"
+  is what the derivative actually measures. Picture the total cost as a pie divided among the
+  neurons: \(\delta^l_j\) is the size of neuron \(j\)'s slice. Backpropagation is the procedure that
+  cuts the pie, layer by layer, from the output end backwards.</p>
+</div>
+
+<h2 id="bp1">BP1 — the error in the output layer</h2>
+
+<p>Start where the answer is known. At the final layer, \(a^L\) is compared directly against \(y\),
+so \(\partial C/\partial a^L\) is available immediately from the cost function. The definition of
+\(\delta\) wants \(z^L\) though, so one chain-rule link bridges the gap:</p>
+
+<div class="eq" data-n="6.3">\[ \delta^L_j=\frac{\partial C}{\partial z^L_j}=\frac{\partial C}{\partial a^L_j}\;\frac{\partial a^L_j}{\partial z^L_j}=\frac{\partial C}{\partial a^L_j}\,\phi'(z^L_j) \]</div>
+
+<p>Collecting all \(j\) into vectors, and recalling from chapter 2 that a diagonal Jacobian applied to
+a vector is an element-wise product:</p>
+
+<div class="eq headline" data-n="BP1">\[ \delta^L=\nabla_{a}C\;\odot\;\phi'(z^L) \]</div>
+
+<p>Both factors are known the instant the forward pass finishes. \(\phi'(z^L)\) comes from the stored
+pre-activations, and \(\nabla_a C\) comes from the cost function — for mean squared error, chapter 3
+computed it:</p>
+
+<div class="eq" data-n="6.4">\[ C=\tfrac12\lVert a^L-y\rVert^2 \quad\Longrightarrow\quad \nabla_a C=a^L-y \quad\Longrightarrow\quad \delta^L=(a^L-y)\odot\phi'(z^L) \]</div>
+
+<div class="note beyond">
+  <span class="label">Pairing the loss with the activation</span>
+  <p>The \(\phi'(z^L)\) factor can hurt. With a sigmoid output that is confidently wrong,
+  \(z^L\) is far from zero, \(\sigma'(z^L)\approx0\), and \(\delta^L\) is crushed toward zero — the
+  network learns slowest exactly when it is most wrong.</p>
+  <p>Pairing softmax output with cross-entropy loss removes the problem outright: the two derivatives
+  cancel and BP1 collapses to \(\delta^L = a^L-y\), with no \(\phi'\) factor at all. That
+  cancellation, not tradition, is why classification networks pair those two.</p>
+</div>
+
+<h2 id="bp2">BP2 — pushing the error back a layer</h2>
+
+<p>This is the equation that makes the algorithm an algorithm. Given the errors in layer \(l+1\), it
+produces the errors in layer \(l\):</p>
+
+<div class="eq headline" data-n="BP2">\[ \delta^l=\Bigl(\bigl(W^{l+1}\bigr)\T\,\delta^{l+1}\Bigr)\;\odot\;\phi'(z^l) \]</div>
+
+<p>Combine it with BP1 and every layer is reachable: BP1 gives \(\delta^L\), BP2 gives
+\(\delta^{L-1}\), then \(\delta^{L-2}\), all the way down.</p>
+
+<h3>First reading: forward propagation, reversed</h3>
+
+<p>Recall that \(W^{l+1}\) has rows indexed by destination and columns by source. Transposing swaps
+them, so \((W^{l+1})\T\) has rows indexed by the neurons the signal <em>came from</em>. Multiplying
+by it moves a quantity from layer \(l+1\) back to layer \(l\) — the same connections traversed in the
+opposite direction.</p>
+
+<p>Forward propagation pushes activations through \(W\); backpropagation pulls errors through
+\(W\T\). Then \(\odot\,\phi'(z^l)\) accounts for the activation function sitting in the path. The
+symmetry is not a coincidence, and the next derivation shows why.</p>
+
+<h3>Second reading: fill in the chain</h3>
+
+<p>Take a two-layer network written as a chain of substitutions:</p>
+
+<div class="eq" data-n="6.5">\[ z^1=W^1a^0+b^1,\quad a^1=\phi(z^1),\qquad z^2=W^2a^1+b^2,\quad a^2=\phi(z^2) \]</div>
+
+<p>Suppose \(\delta^2=\partial C/\partial z^2\) is already known and we want
+\(\delta^1=\partial C/\partial z^1\). Treat it as a puzzle: we have \(C\) over \(z^2\) and want \(C\)
+over \(z^1\), so we need intermediate links whose numerators and denominators cancel down to what we
+want.</p>
+
+<ol class="derivation">
+  <li>
+    <strong>Find the route.</strong> What connects \(z^2\) back to \(z^1\)? Only \(a^1\) — it is the
+    output of layer 1 and the input of layer 2.
+    <div class="eq">\[ \frac{\partial C}{\partial z^1}=\underbrace{\frac{\partial C}{\partial z^2}}_{\delta^2}\;\frac{\partial z^2}{\partial a^1}\;\frac{\partial a^1}{\partial z^1} \]</div>
+    <span class="why">The intermediates cancel formally, leaving \(\partial C/\partial z^1\), which is \(\delta^1\).</span>
+  </li>
+  <li>
+    <strong>Differentiate through the affine map.</strong> In \(z^2=W^2a^1+b^2\), the bias is a
+    constant and the rest is a matrix acting on \(a^1\), so the Jacobian is the matrix itself:
+    <div class="eq">\[ \frac{\partial z^2}{\partial a^1}=W^2 \]</div>
+    <span class="why">Entry \((j,k)\) asks how \(z^2_j\) responds to \(a^1_k\); since \(z^2_j=\sum_k w^2_{jk}a^1_k+b^2_j\), the answer is \(w^2_{jk}\).</span>
+  </li>
+  <li>
+    <strong>Differentiate through the activation.</strong> \(\phi\) is element-wise, so the Jacobian
+    is diagonal:
+    <div class="eq">\[ \frac{\partial a^1}{\partial z^1}=\operatorname{diag}\bigl(\phi'(z^1)\bigr) \]</div>
+  </li>
+  <li>
+    <strong>Assemble — and mind the transposes.</strong> Jacobians compose acting on the left of
+    column vectors, so pulling a gradient backwards through a map applies the <em>transpose</em> of
+    its Jacobian:
+    <div class="eq">\[ \delta^1=\operatorname{diag}\bigl(\phi'(z^1)\bigr)\,\bigl(W^2\bigr)\T\,\delta^2 \]</div>
+    <span class="why">If \(z^{l+1}=f(a^l)\) then \(\nabla_{a^l}C=J_f\T\,\nabla_{z^{l+1}}C\). The transpose is what turns "how outputs depend on inputs" into "how input-blame follows from output-blame".</span>
+  </li>
+  <li>
+    <strong>Rewrite the diagonal as an element-wise product.</strong> For any vectors,
+    \(\operatorname{diag}(\mathbf u)\mathbf v=\mathbf u\odot\mathbf v\):
+    <div class="eq">\[ \delta^1=\Bigl(\bigl(W^2\bigr)\T\delta^2\Bigr)\odot\phi'(z^1) \]</div>
+    <span class="why">Which is BP2 with \(l=1\), arrived at from the chain rule alone.</span>
+  </li>
+</ol>
+
+<div class="note pitfall">
+  <span class="label">Where the transpose really comes from</span>
+  <p>It is common to see this step justified with "the derivative of \(W\mathbf a\) with respect to
+  \(\mathbf a\) is \(W\T\)". That is not quite right and it is worth being precise, because the
+  imprecision makes the equation look arbitrary.</p>
+  <p>The Jacobian of \(\mathbf a\mapsto W\mathbf a\) is \(W\), full stop. The transpose appears
+  because we are propagating a <strong>gradient</strong> — a column vector of sensitivities of a
+  scalar — and gradients pull back through \(J\T\) while Jacobians push forward through \(J\). The
+  shapes confirm it and nothing else needs to be taken on faith.</p>
+</div>
+
+<div class="note shape">
+  <span class="label">Shape check on BP2</span>
+  <p>\(\underbrace{(W^{l+1})\T}_{n_l\times n_{l+1}}\;\underbrace{\delta^{l+1}}_{n_{l+1}\times1}\;=\;n_l\times1\), then \(\odot\;\underbrace{\phi'(z^l)}_{n_l\times1}\;=\;\underbrace{\delta^l}_{n_l\times1}\)</p>
+  <p>One error per neuron in layer \(l\), as required. Had we used \(W^{l+1}\) untransposed, the
+  inner dimensions would not have matched at all.</p>
+</div>
+
+<div class="note beyond">
+  <span class="label">Vanishing and exploding gradients, read off BP2</span>
+  <p>Applying BP2 repeatedly means the error reaching layer \(l\) has been multiplied by a factor of
+  \(\phi'\) once per layer it travelled through. With sigmoid, \(\sigma'\) never exceeds \(0.25\), so
+  crossing \(k\) layers shrinks the signal by at least \(4^{-k}\). Ten layers is a factor of a
+  million; early layers receive essentially nothing and stop learning.</p>
+  <p>That is the <strong>vanishing gradient problem</strong>, and BP2 is where it lives. Large
+  weights produce the mirror failure, exploding gradients. Much of modern architecture design is a
+  response to this one equation: ReLU keeps \(\phi'=1\) on the active branch, residual connections
+  add a path where the multiplier is exactly 1, and careful initialisation keeps
+  \((W)\T\) from scaling the signal up or down.</p>
+</div>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 620 190" width="100%" role="img" aria-label="Figure 6.2: The Vanishing Gradient Waterfall across layers">
+    <!-- Top label -->
+    <text x="310" y="20" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)">Gradient Signal Attenuation Through 4 Layers (\(\delta^l\) Magnitude)</text>
+
+    <!-- Sigmoid Waterfall (Vanishing) -->
+    <g transform="translate(30, 40)">
+      <rect width="260" height="135" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="130" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)">Sigmoid Activation: &sigma;'(z) &le; 0.25</text>
+      <!-- Bars representing error magnitude -->
+      <!-- Layer 4 -->
+      <text x="15" y="46" font-size="10" fill="var(--ink-muted)">Output L4</text>
+      <rect x="75" y="36" width="160" height="12" rx="2" fill="var(--rose)" opacity="1"/>
+      <text x="240" y="46" font-size="9.5" fill="var(--ink)" font-family="ui-monospace">100%</text>
+      <!-- Layer 3 -->
+      <text x="15" y="68" font-size="10" fill="var(--ink-muted)">Hidden L3</text>
+      <rect x="75" y="58" width="40" height="12" rx="2" fill="var(--rose)" opacity="0.8"/>
+      <text x="122" y="68" font-size="9.5" fill="var(--ink)" font-family="ui-monospace">25%</text>
+      <!-- Layer 2 -->
+      <text x="15" y="90" font-size="10" fill="var(--ink-muted)">Hidden L2</text>
+      <rect x="75" y="80" width="10" height="12" rx="2" fill="var(--rose)" opacity="0.6"/>
+      <text x="92" y="90" font-size="9.5" fill="var(--ink)" font-family="ui-monospace">6.25%</text>
+      <!-- Layer 1 -->
+      <text x="15" y="112" font-size="10" fill="var(--ink-muted)">Hidden L1</text>
+      <rect x="75" y="102" width="2.5" height="12" rx="1" fill="var(--rose)" opacity="0.4"/>
+      <text x="84" y="112" font-size="9.5" fill="var(--rose)" font-weight="700" font-family="ui-monospace">1.5% (Vanished!)</text>
+      <text x="130" y="128" text-anchor="middle" font-size="9" fill="var(--ink-muted)">Signal dies out exponentially: 4⁻ᵏ</text>
+    </g>
+
+    <!-- ReLU Preservation (Healthy Gradient Flow) -->
+    <g transform="translate(330, 40)">
+      <rect width="260" height="135" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="130" y="22" text-anchor="middle" font-size="11" font-weight="700" fill="var(--emerald)">ReLU Activation: &phi;'(z) = 1 (active)</text>
+      <!-- Bars representing error magnitude -->
+      <!-- Layer 4 -->
+      <text x="15" y="46" font-size="10" fill="var(--ink-muted)">Output L4</text>
+      <rect x="75" y="36" width="160" height="12" rx="2" fill="var(--emerald)"/>
+      <text x="240" y="46" font-size="9.5" fill="var(--ink)" font-family="ui-monospace">100%</text>
+      <!-- Layer 3 -->
+      <text x="15" y="68" font-size="10" fill="var(--ink-muted)">Hidden L3</text>
+      <rect x="75" y="58" width="160" height="12" rx="2" fill="var(--emerald)"/>
+      <text x="240" y="68" font-size="9.5" fill="var(--ink)" font-family="ui-monospace">100%</text>
+      <!-- Layer 2 -->
+      <text x="15" y="90" font-size="10" fill="var(--ink-muted)">Hidden L2</text>
+      <rect x="75" y="80" width="160" height="12" rx="2" fill="var(--emerald)"/>
+      <text x="240" y="90" font-size="9.5" fill="var(--ink)" font-family="ui-monospace">100%</text>
+      <!-- Layer 1 -->
+      <text x="15" y="112" font-size="10" fill="var(--ink-muted)">Hidden L1</text>
+      <rect x="75" y="102" width="160" height="12" rx="2" fill="var(--emerald)"/>
+      <text x="240" y="112" font-size="9.5" fill="var(--emerald)" font-weight="700" font-family="ui-monospace">100% (Alive!)</text>
+      <text x="130" y="128" text-anchor="middle" font-size="9" fill="var(--ink-muted)">Gradient flows unimpeded through depth</text>
+    </g>
+  </svg>
+  <div class="diagram-caption"><strong>Figure 6.2:</strong> The vanishing gradient waterfall. With sigmoids, each backward step multiplies error by \(\phi'(z) \le 0.25\), cutting the gradient in quarters repeatedly. ReLU has a derivative of exactly 1 on active neurons, preventing gradient decay.</div>
+</div>
+
+<h2 id="bp3-bp4">BP3 and BP4 — from errors to parameter gradients</h2>
+
+<p>The \(\delta\)s are not themselves what gradient descent consumes. Two short steps convert them.</p>
+
+<h3>BP3: the bias gradient</h3>
+
+<p>The bias of neuron \(j\) in layer \(l\) enters only through \(z^l_j=\sum_k w^l_{jk}a^{l-1}_k+b^l_j\),
+with coefficient 1:</p>
+
+<div class="eq" data-n="6.6">\[ \frac{\partial C}{\partial b^l_j}=\frac{\partial C}{\partial z^l_j}\;\frac{\partial z^l_j}{\partial b^l_j}=\delta^l_j\cdot 1 \]</div>
+
+<div class="eq headline" data-n="BP3">\[ \nabla_{b^l}C=\delta^l \]</div>
+
+<p>The bias gradients are the errors. Not proportional to them, not derived from them — identical.
+Once the backward sweep is done, every bias gradient in the network is already sitting in memory.</p>
+
+<h3>BP4: the weight gradient</h3>
+
+<p>Same one step, with a different derivative at the end. From the same expression for \(z^l_j\), the
+sensitivity to \(w^l_{jk}\) is its multiplier \(a^{l-1}_k\):</p>
+
+<div class="eq" data-n="6.7">\[ \frac{\partial C}{\partial w^l_{jk}}=\frac{\partial C}{\partial z^l_j}\;\frac{\partial z^l_j}{\partial w^l_{jk}}=\delta^l_j\,a^{l-1}_k \]</div>
+
+<p>Which is the same statement as chapter 4's: a weight's gradient is an error term multiplied by the
+input flowing along that weight.</p>
+
+<p>Now assemble the whole matrix. The gradient with respect to \(W^l\) must have the same shape as
+\(W^l\), so \(n_l\times n_{l-1}\). Writing out a \(3\times3\) case using 6.7:</p>
+
+<div class="eq" data-n="6.8">\[ \nabla_{W^l}C=\begin{bmatrix}\delta^l_1a^{l-1}_1&\delta^l_1a^{l-1}_2&\delta^l_1a^{l-1}_3\\ \delta^l_2a^{l-1}_1&\delta^l_2a^{l-1}_2&\delta^l_2a^{l-1}_3\\ \delta^l_3a^{l-1}_1&\delta^l_3a^{l-1}_2&\delta^l_3a^{l-1}_3\end{bmatrix} \]</div>
+
+<p>The pattern is unmistakable: <strong>\(\delta\) is constant along each row, \(a^{l-1}\) is constant
+down each column</strong>. Rows correspond to destination neurons, and every weight in a row feeds the
+same neuron, hence shares its error. Columns correspond to source neurons, and every weight in a
+column carries the same activation.</p>
+
+<p>A matrix whose \((j,k)\) entry is \(u_jv_k\) is an outer product:</p>
+
+<div class="eq headline" data-n="BP4">\[ \nabla_{W^l}C=\delta^l\bigl(a^{l-1}\bigr)\T \]</div>
+
+<div class="note shape">
+  <span class="label">Shape check on BP4</span>
+  <p>\(\underbrace{\delta^l}_{n_l\times1}\;\underbrace{(a^{l-1})\T}_{1\times n_{l-1}}\;=\;\underbrace{n_l\times n_{l-1}}_{\text{exactly }W^l}\)</p>
+  <p>The inner 1s make this an outer product rather than a dot product. Written the other way round,
+  \(a^{l-1}(\delta^l)\T\) would give \(n_{l-1}\times n_l\) — the transpose of what is needed. The
+  shape check settles the ordering without having to remember it.</p>
+</div>
+
+<h2 id="algorithm">The algorithm</h2>
+
+<p>Four equations, assembled into a procedure. Note that steps 1 and 2 are the forward pass, and only
+steps 3&ndash;6 are backpropagation proper.</p>
+
+<div class="note def">
+  <span class="label">Backpropagation, for one training example</span>
+  <ol style="margin-bottom:0">
+    <li><strong>Forward pass.</strong> For \(l=1,\dots,L\) compute \(z^l=W^la^{l-1}+b^l\) and
+    \(a^l=\phi(z^l)\), <strong>storing every \(z^l\) and \(a^l\)</strong>. All four equations need
+    them, and recomputing later would waste the work.</li>
+    <li><strong>Evaluate the cost</strong> \(C(a^L,y)\).</li>
+    <li><strong>Output error.</strong> Apply BP1: \(\delta^L=\nabla_aC\odot\phi'(z^L)\).</li>
+    <li><strong>Backward sweep.</strong> For \(l=L-1,\dots,1\) apply BP2:
+    \(\delta^l=\bigl((W^{l+1})\T\delta^{l+1}\bigr)\odot\phi'(z^l)\).</li>
+    <li><strong>Bias gradients.</strong> Apply BP3: \(\nabla_{b^l}C=\delta^l\). Free — they are the
+    \(\delta\)s from step 4.</li>
+    <li><strong>Weight gradients.</strong> Apply BP4: \(\nabla_{W^l}C=\delta^l(a^{l-1})\T\), using
+    the activations stored in step 1.</li>
+  </ol>
+</div>
+
+<div class="panel" id="bp-stepper">
+  <div class="panel-head">
+    <h4>Interactive Step-by-Step Backpropagation Walkthrough</h4>
+    <span class="hint" id="bp-step-pill">Step 0: Initial State</span>
+  </div>
+  <div class="panel-body">
+    <div id="bp-step-desc" class="readout" style="margin-bottom:1rem">
+      Click <b>Next Step &rarr;</b> to trace error propagation from output to inputs.
+    </div>
+    <div id="bp-step-svg" style="background:var(--surface-2);border-radius:6px;padding:0.75rem;border:1px solid var(--rule-firm)"></div>
+    <div class="controls" style="margin-top:1rem">
+      <button class="btn primary" id="bp-next-step">Next Step &rarr;</button>
+      <button class="btn" id="bp-reset-step">Reset to Step 0</button>
+    </div>
+  </div>
+</div>
+
+<p>Steps 3 and 4 are the whole backward pass, and neither touches a weight gradient. Backpropagation
+computes <em>errors</em>; the parameter gradients fall out afterwards, almost as an afterthought,
+from the stored activations. That division is the clean idea at the centre of the algorithm.</p>
+
+<p>Then unroll all the gradients into one vector, apply chapter 5's update
+\(\theta\leftarrow\theta-\eta\nabla_\theta C\), and repeat: forward, backward, update, forward,
+backward, update, for as many iterations as it takes.</p>
+
+<h2 id="reconciliation">Reconciling with chapter 4</h2>
+
+<p>Chapter 4 derived the one-neuron gradients the long way, through Hadamard products and sums and a
+piecewise ReLU. On the live branch, with a single example:</p>
+
+<div class="eq" data-n="6.9">\[ \frac{\partial C}{\partial b}=e, \qquad \frac{\partial C}{\partial \mathbf w}=e\,\mathbf x\T \]</div>
+
+<p>Set that network in the general notation. It has one layer, so \(L=1\); its input is the zeroth
+activation, so \(\mathbf x=a^0\); it has one output neuron, so \(\delta^1\) is a single number. On
+the active ReLU branch \(\phi'(z)=1\), so BP1 gives \(\delta^1=(a^1-y)\cdot 1=e\). Substituting into
+BP3 and BP4:</p>
+
+<div class="eq" data-n="6.10">\[ \nabla_{b^1}C=\delta^1=e, \qquad \nabla_{W^1}C=\delta^1(a^0)\T=e\,\mathbf x\T \]</div>
+
+<p>The same two lines. Chapter 4 and chapter 6 are not two results but one, seen from two distances.</p>
+
+<div class="note key">
+  <span class="label">What backpropagation actually generalises</span>
+  <p>In a one-neuron network the error is obvious: the neuron's output is compared directly against
+  the answer, so its influence on the cost is visible by inspection. In a deep network, a neuron four
+  layers from the output influences the cost only through everything downstream of it, and that
+  influence cannot be read off.</p>
+  <p>BP2 is precisely the machinery for computing it anyway — carrying blame backwards one layer at a
+  time so that every neuron ends up with the number that chapter 4 could simply see. Once each neuron
+  has its \(\delta\), the weight and bias gradients are the same formulas as in the simple case.</p>
+</div>
+
+<h2 id="lab">Laboratory: XOR from scratch</h2>
+
+<p>A 2&ndash;2&ndash;1 network with sigmoid activations, learning XOR, using exactly BP1&ndash;BP4 and
+nothing else. XOR is the traditional test because it is not linearly separable: no single neuron can
+solve it, so any success depends on the hidden layer, and therefore on error being propagated back
+into it by BP2.</p>
+
+<div class="panel">
+  <div class="panel-head">
+    <h4>XOR training laboratory</h4>
+    <span class="hint">edge colour = weight sign, thickness = magnitude</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <button class="btn" id="lab-10">Train 10</button>
+      <button class="btn" id="lab-100">Train 100</button>
+      <button class="btn primary" id="lab-2000">Train 2000</button>
+      <button class="btn" id="lab-reset">Reset weights</button>
+      <label>&#951; <input id="lab-lr" type="number" min="0.01" max="20" step="0.5" value="6"></label>
+    </div>
+    <div id="lab-network"></div>
+    <div class="metrics" style="margin-top:1rem">
+      <div><span>Iteration</span><b id="lab-iter">0</b></div>
+      <div><span>Loss</span><b id="lab-loss-val">&mdash;</b></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 200px;gap:1rem;margin-top:1rem;align-items:center">
+      <canvas id="lab-loss" width="420" height="200" style="width:100%;height:auto;border-radius:6px"></canvas>
+      <div style="text-align:center">
+        <canvas id="lab-boundary" width="200" height="200" style="width:100%;height:auto;border-radius:6px;border:1px solid var(--rule-firm)"></canvas>
+        <span style="font-size:0.75rem;color:var(--ink-muted);display:block;margin-top:0.35rem">2D Decision Boundary</span>
+      </div>
+    </div>
+    <div class="dataset" id="lab-data"></div>
+    <p style="font-size:.9rem;color:var(--ink-muted);margin-top:.9rem">
+      Each entry reads <span class="mono">(x&#8321;, x&#8322;) &rarr; prediction / target</span>.
+      Reset a few times: some random initialisations solve XOR in a few hundred steps, others stall
+      near a loss of 0.125 — the network has found the local minimum that predicts 0.5 for
+      everything. The loss surface really does have places to get stuck, and this is one of them.
+    </p>
+  </div>
+</div>
+
+<details class="check">
+  <summary>The equations this laboratory implements, line by line</summary>
+  <div class="answer">
+    <p>Forward pass, storing everything:</p>
+    <div class="eq">\[ z^1=W^1x+b^1,\quad a^1=\sigma(z^1),\qquad z^2=W^2a^1+b^2,\quad \hat y=\sigma(z^2) \]</div>
+    <p>Cost, and its derivative with respect to the output activation:</p>
+    <div class="eq">\[ C=\tfrac12(\hat y-y)^2 \quad\Longrightarrow\quad \nabla_aC=\hat y-y \]</div>
+    <p>BP1, using \(\sigma'(z)=\sigma(z)(1-\sigma(z))=\hat y(1-\hat y)\):</p>
+    <div class="eq">\[ \delta^2=(\hat y-y)\,\hat y(1-\hat y) \]</div>
+    <p>BP2, pulling the error back into the hidden layer:</p>
+    <div class="eq">\[ \delta^1=\bigl((W^2)\T\delta^2\bigr)\odot a^1\odot(1-a^1) \]</div>
+    <p>BP3 and BP4 for both layers:</p>
+    <div class="eq">\[ \nabla_{W^2}C=\delta^2(a^1)\T,\quad \nabla_{b^2}C=\delta^2,\qquad \nabla_{W^1}C=\delta^1x\T,\quad \nabla_{b^1}C=\delta^1 \]</div>
+    <p>Gradients are averaged over all four XOR examples, then applied with
+    \(\theta\leftarrow\theta-\eta\nabla_\theta C\). Sigmoid is used rather than ReLU because a
+    2-neuron hidden layer with ReLU dies too often for a demonstration.</p>
+  </div>
+</details>
+
+<h2 id="next">Where to go from here</h2>
+
+<p>The mathematics is complete. Three directions extend it.</p>
+
+<p><strong>Build one.</strong> Implement a network on MNIST digit classification with NumPy and
+nothing else — no PyTorch, no TensorFlow, no autograd. Write BP1&ndash;BP4 by hand and check every
+gradient against finite differences (equation 4.12). It is a weekend of work and it converts this
+material from something you have read into something you know.</p>
+
+<p><strong>Extend the theory.</strong> Backpropagation in convolutional networks, where weights are
+shared and the gradient of a shared weight sums over every position it appears in. In recurrent
+networks, where unrolling through time produces very long chains and BP2's multiplicative factors
+become a serious problem. And reverse-mode automatic differentiation in general, which is what a
+modern framework's autograd actually implements.</p>
+
+<p><strong>Use a framework, knowing what it does.</strong> PyTorch and TensorFlow automate this
+bookkeeping — you write the forward pass and <code>.backward()</code> runs BP1&ndash;BP4 over a graph
+it recorded. The automation is real, but the equations underneath are these four, unchanged.</p>
+
+<h2 id="self-check">Self-check</h2>
+
+<details class="check">
+  <summary>Why is \(\delta\) defined on \(z\) rather than on \(a\)?</summary>
+  <div class="answer">
+    <p>Because every parameter of a neuron — all its weights and its bias — influences the cost only
+    through that neuron's \(z\). Anchoring the error there means BP3 and BP4 are each a single
+    multiplication away. Defining it at \(a\) would leave a \(\phi'\) factor to be reinserted in
+    every downstream formula.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>In BP2, why the transpose on \(W^{l+1}\)?</summary>
+  <div class="answer">
+    <p>Two answers, and they agree. Structurally, \(W^{l+1}\) has rows indexed by destination and
+    columns by source; transposing reverses that, so multiplying by \(W\T\) moves a quantity from the
+    later layer back to the earlier one.</p>
+    <p>Formally, the Jacobian \(\partial z^{l+1}/\partial a^l\) is \(W^{l+1}\), and a gradient pulls
+    back through the <em>transpose</em> of a Jacobian: \(\nabla_{a^l}C=J\T\nabla_{z^{l+1}}C\). The
+    shapes confirm it — only \(n_l\times n_{l+1}\) times \(n_{l+1}\times1\) is defined.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why must the forward pass store every \(z^l\) and \(a^l\)?</summary>
+  <div class="answer">
+    <p>Because the backward pass consumes them. BP1 and BP2 need \(\phi'(z^l)\), and BP4 needs
+    \(a^{l-1}\). They are computed anyway during the forward pass, so keeping them costs memory but
+    no extra arithmetic — and recomputing them would mean re-running the forward pass at every layer.</p>
+    <p>This is a real memory cost at scale, which is why gradient checkpointing exists: store only
+    some activations and recompute the rest, trading time for memory.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Layer \(l\) has 6 neurons, layer \(l-1\) has 10. What shapes are \(\delta^l\) and \(\nabla_{W^l}C\)?</summary>
+  <div class="answer">
+    <p>\(\delta^l\) is \(6\times1\) — one error per neuron in layer \(l\). \(\nabla_{W^l}C\) is
+    \(6\times10\), matching \(W^l\), and comes from the outer product \(\delta^l(a^{l-1})\T\):
+    \((6\times1)(1\times10)\).</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>A 20-layer sigmoid network trains only in its last few layers. Which equation explains it, and what fixes it?</summary>
+  <div class="answer">
+    <p>BP2. Every application multiplies the error by a factor of \(\sigma'\), which never exceeds
+    \(0.25\). After 20 layers the signal has been scaled by at most \(0.25^{20}\approx10^{-12}\), so
+    the early layers receive gradients indistinguishable from zero and their parameters never move.</p>
+    <p>Fixes attack the multiplier directly: ReLU has \(\phi'=1\) wherever it is active; residual
+    connections add a path whose local derivative is exactly 1; normalisation layers keep
+    pre-activations in the range where \(\phi'\) is not tiny; and careful initialisation stops
+    \((W)\T\) compounding the shrinkage.</p>
+  </div>
+</details>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="05-gradient-descent.html"><span class="dir">&larr; Previous</span><span class="title">5. Gradient descent</span></a>
+  <a class="next" href="07-reference.html"><span class="dir">Next &rarr;</span><span class="title">7. Reference</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

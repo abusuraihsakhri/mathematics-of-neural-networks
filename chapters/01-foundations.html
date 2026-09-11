@@ -1,0 +1,507 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>1. Foundations and notation — Mathematics of Neural Networks</title>
+<meta name="description" content="What a neural network is as a mathematical object, what training actually asks, and the index conventions the rest of the guide depends on.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">1. Foundations and notation</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html" aria-current="page"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 1</p>
+  <h1>Foundations and notation</h1>
+  <p class="standfirst">Before any derivative: what kind of object a neural network is, what training
+  actually asks of it, and the index conventions that make the later algebra come out clean.</p>
+</header>
+
+<!-- Simplified Summary Card -->
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; The Big Picture</span>
+  <h3>What are we actually doing here?</h3>
+  <ul>
+    <li><strong>A neural network is a mathematical assembly line:</strong> You give it numbers (an image, sounds, sensor readings), it runs them through successive layers that multiply, add, and filter, and outputs a final prediction.</li>
+    <li><strong>Training is adjusting dials:</strong> The weights (\(w\)) and biases (\(b\)) are millions of adjustable knobs. Training is the process of wiggling those knobs until the output prediction matches reality.</li>
+    <li><strong>The Core Challenge:</strong> If you turn a knob on layer 2 by a millimeter, how much does the mistake at layer 50 change? Answering that question for all million knobs at once, while steering high-dimensional parameters down complex loss valleys, is what the mathematics in this guide accomplishes across its three core pillars: Linear Algebra, Matrix Calculus, and Optimization Theory.</li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. Input Audio</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <path d="M 10,30 Q 25,10 40,30 T 70,30" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+      <circle cx="10" cy="30" r="3" fill="var(--accent)"/>
+      <circle cx="70" cy="30" r="3" fill="var(--accent)"/>
+    </svg>
+    <h5>Incoming Signals (x)</h5>
+    <p>Raw features from the outside world enter the channels like music tracks into a console.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Volume Knobs</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="40" cy="30" r="20" fill="var(--surface-2)" stroke="var(--amber)" stroke-width="2"/>
+      <line x1="40" y1="30" x2="52" y2="18" stroke="var(--amber)" stroke-width="3" stroke-linecap="round"/>
+      <circle cx="40" cy="30" r="4" fill="var(--amber)"/>
+    </svg>
+    <h5>Weights &amp; Bias (w, b)</h5>
+    <p>Tuning knobs: weights boost or mute channels; bias sets the baseline volume floor.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Peak Limiter</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <line x1="10" y1="45" x2="40" y2="45" stroke="var(--emerald)" stroke-width="2.5"/>
+      <line x1="40" y1="45" x2="70" y2="15" stroke="var(--emerald)" stroke-width="2.5"/>
+      <circle cx="40" cy="45" r="4" fill="var(--emerald)"/>
+    </svg>
+    <h5>Activation Gate (&phi;)</h5>
+    <p>A non-linear gate that mutes quiet noise and bends loud signals so deep networks can bend curves.</p>
+  </div>
+</div>
+
+<h2 id="what-this-assumes">The Three Pillars of Neural Network Mathematics</h2>
+
+<p>This guide develops the complete mathematical machinery underlying modern neural networks. Rather than treating deep learning as black-box heuristics or isolated calculus formulas, we unify the three mathematical pillars that make learning possible:</p>
+
+<p><strong>1. Linear algebra &amp; high-dimensional geometry.</strong> Vectors, matrices, transposes, inner products, and matrix affine mappings \(z = W\mathbf{x} + \mathbf{b}\). Networks manipulate data by rotating, shearing, stretching, and contracting coordinate manifolds. If you can multiply a \(3\times2\) matrix by a \(2\times1\) vector and understand why the result is \(3\times1\), you have enough to begin.</p>
+
+<p><strong>2. Multivariable calculus &amp; matrix analysis.</strong> Gradients, Jacobians, and the chain rule on directed computational graphs. Gradients give directional slopes; Jacobians measure how multi-dimensional transformations stretch space; and adjoint sensitivity vectors pull backward through transposed Jacobians (\(J^\top\)). Chapter 2 rebuilds this entire toolkit visually from scratch.</p>
+
+<p><strong>3. Optimization theory &amp; loss landscapes.</strong> Gradient descent dynamics, learning rate stability bounds (\(\eta &lt; 2/\lambda_{\max}\)), condition numbers, heavy-ball momentum, and stochastic mini-batch noise escaping saddle points. Optimization bridges pure calculus with physical convergence.</p>
+
+<div class="note beyond">
+  <span class="label">Worth knowing</span>
+  <p>The mathematics here is old. The perceptron dates to 1958, the calculus of training multi-layer
+  networks was circulating through the 1960s and 70s, and the paper that made backpropagation famous
+  is Rumelhart, Hinton and Williams (1986). What changed after 2012 was data, hardware and
+  engineering — not these equations. The derivations on the next six pages are the same ones running
+  inside a modern framework, just with more layers and a smarter optimiser wrapped around them.</p>
+</div>
+
+<h2 id="networks-as-functions">A network is a function</h2>
+
+<p>Strip away the diagrams of circles and arrows and a feed-forward neural network is one large
+function assembled from many small ones. It takes a vector in and returns something out — a number, a
+vector of class probabilities, a decision.</p>
+
+<div class="eq headline" data-n="1.1">\[ \hat y = f(\mathbf x;\theta) = f_L \circ f_{L-1} \circ \cdots \circ f_2 \circ f_1(\mathbf x) \]</div>
+
+<!-- Visual Formula Decoder -->
+<div class="visual-decoder">
+  <span class="decoder-title">Visual Formula Decoder &middot; No Math Fear</span>
+  <div class="formula-hero">
+    <span style="color:var(--accent)">\(z\)</span> =
+    <span style="color:var(--amber)">\(w_1 x_1 + w_2 x_2 + \dots\)</span> +
+    <span style="color:var(--rose)">\(b\)</span>
+  </div>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">\(z\) (Pre-activation)</span>
+      <span class="symbol-desc">The Mixed Total</span>
+      <p>Total raw electrical pressure arriving at the neuron before the threshold gate opens.</p>
+    </div>
+    <div class="decoder-card amber">
+      <span class="term" style="color:var(--amber)">\(w\) (Weights)</span>
+      <span class="symbol-desc">Sensitivity Dials</span>
+      <p>Rotary volume knobs. A positive weight amplifies a clue; a negative weight suppresses it.</p>
+    </div>
+    <div class="decoder-card emerald">
+      <span class="term" style="color:var(--emerald)">\(x\) (Inputs)</span>
+      <span class="symbol-desc">Raw Evidence</span>
+      <p>The incoming sensory data signals (e.g. pixel brightness, audio loudness, word frequency).</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">\(b\) (Bias)</span>
+      <span class="symbol-desc">Baseline Threshold</span>
+      <p>The default starting level. Shifts the entire activation threshold up or down regardless of inputs.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Visual Diagram: Function Composition Pipeline -->
+<div class="diagram-box">
+  <svg viewBox="0 0 740 140" width="100%" role="img" aria-label="Function composition pipeline: x into f1 into f2 into fL into output yhat and Cost">
+    <!-- Input -->
+    <circle cx="45" cy="70" r="24" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="45" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">x</text>
+    <text x="45" y="112" text-anchor="middle" font-size="10" fill="var(--ink-muted)" font-family="Inter, sans-serif">Input a⁰</text>
+
+    <line x1="70" y1="70" x2="120" y2="70" stroke="var(--rule-firm)" stroke-width="2"/>
+
+    <!-- Layer 1 -->
+    <rect x="125" y="42" width="105" height="56" rx="8" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="177" y="66" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Layer 1: f₁</text>
+    <text x="177" y="84" text-anchor="middle" font-size="10" fill="var(--ink-muted)" font-family="ui-monospace, monospace">&phi;(W¹x+b¹)</text>
+
+    <line x1="230" y1="70" x2="280" y2="70" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="255" y="62" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="ui-monospace, monospace">a¹</text>
+
+    <!-- Layer 2 -->
+    <rect x="285" y="42" width="105" height="56" rx="8" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="337" y="66" text-anchor="middle" font-size="12" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Layer 2: f₂</text>
+    <text x="337" y="84" text-anchor="middle" font-size="10" fill="var(--ink-muted)" font-family="ui-monospace, monospace">&phi;(W²a¹+b²)</text>
+
+    <line x1="390" y1="70" x2="445" y2="70" stroke="var(--rule-firm)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="418" y="62" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="ui-monospace, monospace">&hellip;</text>
+
+    <!-- Output Layer L -->
+    <rect x="450" y="42" width="115" height="56" rx="8" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2"/>
+    <text x="507" y="66" text-anchor="middle" font-size="12" font-weight="600" fill="var(--emerald)" font-family="Inter, sans-serif">Layer L: f_L</text>
+    <text x="507" y="84" text-anchor="middle" font-size="10" fill="var(--ink-muted)" font-family="ui-monospace, monospace">&phi;(Wᴸaᴸ⁻¹+bᴸ)</text>
+
+    <line x1="565" y1="70" x2="615" y2="70" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="590" y="62" text-anchor="middle" font-size="11" fill="var(--emerald)" font-family="ui-monospace, monospace">&ycirc; = aᴸ</text>
+
+    <!-- Cost block -->
+    <rect x="620" y="45" width="95" height="50" rx="8" fill="var(--rose-soft)" stroke="var(--rose)" stroke-width="1.5"/>
+    <text x="667" y="68" text-anchor="middle" font-size="12" font-weight="700" fill="var(--rose)" font-family="Inter, sans-serif">Cost C</text>
+    <text x="667" y="84" text-anchor="middle" font-size="10" fill="var(--rose)" font-family="ui-monospace, monospace">&frac12;||y - &ycirc;||&sup2;</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 1.1:</b> The network pipeline as nested function composition. Each layer takes the activations of the previous layer, applies an affine transformation, and passes through a non-linear activation function.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: The Audio Mixing Console &amp; Filter Bank</span>
+  <p>Think of a multi-track audio mixing console in a recording studio:</p>
+  <ul>
+    <li>The raw instruments (guitar, vocals, drums) are the <strong>input signals \(\mathbf x\)</strong>.</li>
+    <li>The sliding faders on each channel determine how loudly each instrument contributes to a combined sub-mix — these are the <strong>weights \(W\)</strong>.</li>
+    <li>The preamp gain knobs add a baseline DC offset or master boost — these are the <strong>biases \(b\)</strong>.</li>
+    <li>A hard-clipping audio limiter or distortion pedal clips and shapes the sound non-linearly so it doesn't blow out the speakers — that is the <strong>activation function \(\phi\)</strong>.</li>
+    <li>The sound engineer listens to the master output and measures how muddy or noisy it is — that single measure of badness is the <strong>cost \(C\)</strong>.</li>
+  </ul>
+  <p>Training the network is simply fine-tuning all the slider faders until the master song sounds completely clean.</p>
+</div>
+
+<!-- Interactive Audio Mixing Console Simulator -->
+<div class="panel" id="audio-mixer-widget">
+  <div class="panel-head">
+    <h4>Interactive Audio Mixing Console Simulator</h4>
+    <span class="hint">Physical Intuition: The Neuron as a 3-Channel Audio Strip</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+      <label>Vocal Track (x₁): <b id="mix-x1-val">2.0</b><input id="mix-x1" type="range" min="0" max="5" step="0.1" value="2.0"></label>
+      <label>Bass Track (x₂): <b id="mix-x2-val">1.5</b><input id="mix-x2" type="range" min="0" max="5" step="0.1" value="1.5"></label>
+      <label>Drum Track (x₃): <b id="mix-x3-val">1.0</b><input id="mix-x3" type="range" min="0" max="5" step="0.1" value="1.0"></label>
+    </div>
+    <div class="controls" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));margin-top:0.75rem;">
+      <label>Gain Knob (w₁): <b id="mix-w1-val">1.20</b><input id="mix-w1" type="range" min="-3" max="3" step="0.1" value="1.20"></label>
+      <label>Gain Knob (w₂): <b id="mix-w2-val">-0.80</b><input id="mix-w2" type="range" min="-3" max="3" step="0.1" value="-0.80"></label>
+      <label>Gain Knob (w₃): <b id="mix-w3-val">0.50</b><input id="mix-w3" type="range" min="-3" max="3" step="0.1" value="0.50"></label>
+      <label>Noise Floor (b): <b id="mix-b-val">-0.50</b><input id="mix-b" type="range" min="-3" max="3" step="0.1" value="-0.50"></label>
+    </div>
+    <div style="margin-top:0.9rem">
+      <label style="font-family:var(--font-ui);font-size:0.78rem;font-weight:600;color:var(--ink-muted)">
+        Master Limiter / Activation (&phi;):
+        <select id="mix-limiter" style="padding:0.35rem 0.6rem;border-radius:6px;border:1px solid var(--rule-firm);background:var(--surface);margin-left:0.5rem">
+          <option value="relu">ReLU Gate (Clips Negative Sounds to Silence)</option>
+          <option value="sigmoid">Sigmoid Soft Compressor (Squashes 0 to 1)</option>
+          <option value="linear">Linear Bypass (Uncompressed Sum z)</option>
+        </select>
+      </label>
+    </div>
+    <div class="vu-meter-wrap" style="margin-top:0.9rem">
+      <span style="font-family:var(--font-mono);font-size:0.75rem;font-weight:700;color:var(--ink-muted)">OUTPUT VU</span>
+      <div class="vu-meter-leds" id="mix-vu"></div>
+    </div>
+    <div id="mix-readout" class="readout"></div>
+  </div>
+</div>
+
+<p>Two different kinds of quantity appear in that expression and keeping them apart is the whole
+game:</p>
+
+<ul>
+  <li>The <strong>input</strong> \(\mathbf x\) is a vector holding all the variables of a single
+  training example. It is given to us and we never change it.</li>
+  <li>The <strong>parameters</strong> \(\theta\) are all the weights and biases, however many there
+  are. They are ours to choose, and choosing them well <em>is</em> training.</li>
+</ul>
+
+<p>Each \(f_l\) is one layer: an affine map followed by a non-linear activation function. Nothing more
+exotic than that. The apparent complexity of a deep network comes from repeating a simple step many
+times, not from any single step being complicated.</p>
+
+<h2 id="one-question">Training asks exactly one question</h2>
+
+<p>Attach a <strong>cost function</strong> \(C\) to the output — some scalar measure of how wrong the
+prediction is against the known answer. Now the entire enterprise collapses into a minimisation
+problem in many variables:</p>
+
+<div class="eq" data-n="1.2">\[ \min_{\theta}\; C(\theta) \]</div>
+
+<p>And the way we attack a differentiable minimisation problem is with derivatives. So the practical
+question, asked once per parameter, is:</p>
+
+<div class="note key">
+  <span class="label">The question</span>
+  <p>For every single weight \(w\) and every bias \(b\) in the network: <strong>how much does the
+  cost change when I nudge this parameter?</strong> That is \(\partial C/\partial w\) and
+  \(\partial C/\partial b\) — and computing all of them efficiently is precisely what backpropagation
+  does.</p>
+</div>
+
+<p>Suppose a small network has a thousand parameters. We want a thousand partial derivatives.
+Together they tell us how much each parameter contributes to the current error, which tells us which
+ones to increase and which to decrease. Everything from chapter 2 onward exists to compute that
+thousand-entry vector without doing a thousand separate pieces of work.</p>
+
+<div class="note intuition">
+  <span class="label">Frame to keep</span>
+  <p>Backpropagation is not a special algorithm invented for neural networks. It is the chain rule,
+  organised so that a composed function with millions of parameters can be differentiated in roughly
+  the cost of evaluating it once. The organising is the contribution. The calculus is ordinary.</p>
+</div>
+
+<h2 id="notation">Notation</h2>
+
+<p>Most of this is standard. It is worth reading once carefully, because a single misread superscript
+will make an entire derivation look wrong.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symbol</th><th>Meaning</th><th>Kind</th></tr></thead>
+  <tbody>
+    <tr><td>\(m\)</td><td>number of training examples</td><td>scalar</td></tr>
+    <tr><td>\(n\)</td><td>number of input variables per example</td><td>scalar</td></tr>
+    <tr><td>\(L\)</td><td>number of layers in the network</td><td>scalar</td></tr>
+    <tr><td>\(l\)</td><td>index of a particular layer, \(1 \le l \le L\)</td><td>index</td></tr>
+    <tr><td>\(n_l\)</td><td>number of neurons in layer \(l\)</td><td>scalar</td></tr>
+    <tr><td>\(x_i\)</td><td>the \(i\)-th input variable of one example</td><td>scalar</td></tr>
+    <tr><td>\(\mathbf x\)</td><td>one training example, all variables stacked</td><td>\(n\times1\)</td></tr>
+    <tr><td>\(W^l\)</td><td>weights <em>entering</em> layer \(l\)</td><td>\(n_l\times n_{l-1}\)</td></tr>
+    <tr><td>\(b^l\)</td><td>bias for layer \(l\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(z^l\)</td><td>pre-activation of layer \(l\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(a^l\)</td><td>activation of layer \(l\), i.e. \(\phi(z^l)\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(\phi\)</td><td>activation function, applied element-wise</td><td>function</td></tr>
+    <tr><td>\(C\)</td><td>cost</td><td>scalar</td></tr>
+    <tr><td>\(\theta\)</td><td>every weight and bias, in one long vector</td><td>vector</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>The superscript on a weight is where it is going</h3>
+
+<p>This is the convention that trips people. \(W^l\) does not mean "the weights of layer \(l\)" in a
+vague sense. It means <strong>the weights arriving at layer \(l\)</strong>, which is to say the
+weights that leave layer \(l-1\). Weights live on the edges between layers, and we name each edge
+after its destination.</p>
+
+<p>A single weight carries two more indices:</p>
+
+<div class="eq" data-n="1.3">\[ w^l_{jk}\;:\;\text{the weight from neuron } k \text{ in layer } l-1 \text{ to neuron } j \text{ in layer } l \]</div>
+
+<p>Destination first, source second. That reads backwards, and it is worth knowing why it is
+written that way.</p>
+
+<div class="note def">
+  <span class="label">Why destination first</span>
+  <p>Collect the \(w^l_{jk}\) into a matrix with \(j\) indexing rows and \(k\) indexing columns. Then
+  the weighted sum arriving at neuron \(j\) is \(\sum_k w^l_{jk}a^{l-1}_k\) — which is exactly row
+  \(j\) of \(W^l\) dotted with the vector \(a^{l-1}\). Stack all the rows and the whole layer is the
+  single product \(W^l a^{l-1}\), with no transpose anywhere.</p>
+  <p>Index the other way round and every layer equation picks up a \(W\T\). The awkward-looking
+  convention is chosen to make the important formula clean.</p>
+</div>
+
+<!-- Visual Diagram: Destination-First Indexing -->
+<div class="diagram-box">
+  <svg viewBox="0 0 680 200" width="100%" role="img" aria-label="Destination-first index convention: edge labeled w^l_jk connecting source k in layer l-1 to destination j in layer l">
+    <!-- Layer l-1 column -->
+    <text x="140" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">Layer l-1 (Source)</text>
+    <circle cx="140" cy="75" r="20" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="140" y="80" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="ui-monospace, monospace">aˡ⁻¹₁</text>
+
+    <circle cx="140" cy="150" r="20" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="140" y="155" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">aˡ⁻¹ₖ</text>
+    <text x="75" y="155" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="Inter, sans-serif">Source k &rarr;</text>
+
+    <!-- Layer l column -->
+    <text x="520" y="30" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">Layer l (Destination)</text>
+    <circle cx="520" cy="60" r="20" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="520" y="65" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="ui-monospace, monospace">aˡ₁</text>
+
+    <circle cx="520" cy="115" r="20" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="520" y="120" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">aˡⱼ</text>
+    <text x="595" y="120" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="Inter, sans-serif">&larr; Destination j</text>
+
+    <circle cx="520" cy="170" r="20" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="520" y="175" text-anchor="middle" font-size="12" fill="var(--ink)" font-family="ui-monospace, monospace">aˡ₃</text>
+
+    <!-- Connecting edges -->
+    <line x1="160" y1="75" x2="500" y2="60" stroke="var(--rule-firm)" stroke-width="1.2" opacity="0.4"/>
+    <line x1="160" y1="75" x2="500" y2="115" stroke="var(--rule-firm)" stroke-width="1.2" opacity="0.4"/>
+    <line x1="160" y1="75" x2="500" y2="170" stroke="var(--rule-firm)" stroke-width="1.2" opacity="0.4"/>
+    <line x1="160" y1="150" x2="500" y2="60" stroke="var(--rule-firm)" stroke-width="1.2" opacity="0.4"/>
+    <line x1="160" y1="150" x2="500" y2="170" stroke="var(--rule-firm)" stroke-width="1.2" opacity="0.4"/>
+
+    <!-- Highlighted edge w^l_jk -->
+    <line x1="160" y1="150" x2="500" y2="115" stroke="var(--accent)" stroke-width="3"/>
+    <rect x="290" y="115" width="100" height="30" rx="6" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1"/>
+    <text x="340" y="135" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent-ink)" font-family="ui-monospace, monospace">wˡ_{j k}</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 1.2:</b> The weight index convention: \(w^l_{jk}\) arrives at neuron \(j\) in layer \(l\), having departed neuron \(k\) in layer \(l-1\). Row \(j\) in matrix \(W^l\) collects all inputs arriving at neuron \(j\).
+  </div>
+</div>
+
+<div class="note shape">
+  <span class="label">Shape check</span>
+  <p>\(W^l\) is \(n_l \times n_{l-1}\): <strong>rows = neurons it feeds, columns = neurons it
+  comes from</strong>. So a layer taking 5 inputs down to 3 neurons has a \(3\times5\) weight matrix.
+  If you ever lose your place in a derivation, recover it by writing the shapes.</p>
+</div>
+
+<!-- Interactive Architecture & Matrix Shape Builder -->
+<div class="panel" id="arch-builder">
+  <div class="panel-head">
+    <h4>Interactive Architecture &amp; Matrix Shape Builder</h4>
+    <span class="hint">Adjust layer sizes to inspect matrix dimensions and parameter scaling</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>Inputs (n₀): <output id="arch-in-val">3</output>
+        <input id="arch-in" type="range" min="1" max="4" value="3">
+      </label>
+      <label>Layer 1 (n₁): <output id="arch-h1-val">4</output>
+        <input id="arch-h1" type="range" min="1" max="5" value="4">
+      </label>
+      <label>Layer 2 (n₂): <output id="arch-h2-val">3</output>
+        <input id="arch-h2" type="range" min="1" max="4" value="3">
+      </label>
+      <label>Output (n₃): <output id="arch-out-val">1</output>
+        <input id="arch-out" type="range" min="1" max="3" value="1">
+      </label>
+    </div>
+    <div style="margin-bottom:1rem">
+      <button class="btn primary" id="arch-pulse">Pulse Signal Through Network</button>
+    </div>
+    <div id="arch-svg" class="canvas-wrap" style="padding:10px;background:var(--surface-2)"></div>
+    <div id="arch-info" style="margin-top:1rem"></div>
+  </div>
+</div>
+
+<h3>Biases</h3>
+
+<p>Each neuron adds a bias to its weighted sum before the activation function. Written per neuron
+that is \(b^l_j\); stacked over the layer it is the vector \(b^l\). Some introductory treatments simplify further and give a whole layer one shared bias scalar.
+Nothing in the derivations changes except the shape of one object, so this guide uses the general
+per-neuron vector \(b^l\) throughout.</p>
+
+<h3>Activations, and the zeroth layer</h3>
+
+<p>The outputs of a layer's neurons stack into the activation vector \(a^l\), and that vector is the
+input to layer \(l+1\). The input data is then just the zeroth activation:</p>
+
+<div class="eq" data-n="1.4">\[ a^0 = \mathbf x \]</div>
+
+<p>which is a small piece of bookkeeping that pays off later: it lets one formula cover every layer,
+including the first, with no special case for the input.</p>
+
+<h2 id="the-plan">The plan from here</h2>
+
+<ol>
+  <li><strong>Chapter 2</strong> builds the calculus: gradients, Jacobians, the chain rule in matrix
+  form, and derivatives of the three operations a neuron is made of.</li>
+  <li><strong>Chapter 3</strong> writes the network down as equations and pushes an input through it.</li>
+  <li><strong>Chapter 4</strong> differentiates a one-neuron network completely, by hand, with no
+  shortcuts. This is the hard chapter and it is where the intuition actually forms.</li>
+  <li><strong>Chapter 5</strong> turns gradients into an optimisation algorithm.</li>
+  <li><strong>Chapter 6</strong> generalises chapter 4 to any depth. That generalisation is
+  backpropagation.</li>
+</ol>
+
+<h2 id="self-check">Self-check</h2>
+
+<details class="check">
+  <summary>A network takes 5 inputs, then has layers of 4, 3 and 1 neurons. What shapes are \(W^1\) and \(W^2\)?</summary>
+  <div class="answer">
+    <p>\(W^1\) is \(4\times5\) and \(W^2\) is \(3\times4\), since \(W^l\) is \(n_l\times n_{l-1}\).</p>
+    <p>Check \(W^2\) carefully: the superscript 2 means "arriving at layer 2", so its 3 rows count
+    the destinations in layer 2 and its 4 columns count the sources in layer 1. The input count of 5
+    never appears in \(W^2\) — it belongs to \(W^1\) alone.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>What does \(w^3_{21}\) connect?</summary>
+  <div class="answer">
+    <p>Neuron 1 of layer 2 to neuron 2 of layer 3. Destination \(j=2\) is written first, source
+    \(k=1\) second, and the superscript names the layer the edge lands in — so the edge leaves
+    layer \(3-1=2\).</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why is the cost a scalar rather than a vector?</summary>
+  <div class="answer">
+    <p>Because minimisation needs an ordering, and vectors have no natural one. Reducing performance
+    to a single number is what lets us say one parameter setting is better than another, and it is
+    also what makes \(\nabla_\theta C\) a vector rather than a matrix — a function
+    \(\mathbb R^{|\theta|}\to\mathbb R\) has a gradient, not a Jacobian.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Training changes the parameters but never the inputs. Where does that show up in the mathematics?</summary>
+  <div class="answer">
+    <p>In which variable we differentiate with respect to. We compute \(\partial C/\partial\theta\)
+    and never \(\partial C/\partial \mathbf x\). The inputs are constants of the problem — which, as
+    chapter 4 shows, is why they end up appearing as multiplicative factors inside the weight
+    gradients.</p>
+  </div>
+</details>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="../index.html"><span class="dir">&larr; Back</span><span class="title">Contents</span></a>
+  <a class="next" href="02-matrix-calculus.html"><span class="dir">Next &rarr;</span><span class="title">2. The matrix calculus toolkit</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

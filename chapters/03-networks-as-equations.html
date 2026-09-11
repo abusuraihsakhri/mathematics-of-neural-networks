@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>3. Neurons, layers, forward propagation — Mathematics of Neural Networks</title>
+<meta name="description" content="From a single weighted sum to the matrix form of a layer, the forward pass, and the mean squared error cost function.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">3. Neurons, layers, forward propagation</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html" aria-current="page"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 3</p>
+  <h1>Neurons, layers, forward propagation</h1>
+  <p class="standfirst">One weighted sum, then many at once, then the whole network — written as
+  equations and worked through with actual numbers, ending at the cost function that training will
+  try to reduce.</p>
+</header>
+
+<!-- Simplified Summary Card -->
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; The Big Picture</span>
+  <h3>From One Neuron to an Entire Network</h3>
+  <ul>
+    <li><strong>The Neuron is an Adder and a Gate:</strong> It takes inputs, scales them by weights, adds a bias, and passes the total through an activation function. If the total is high enough, it fires!</li>
+    <li><strong>Why Non-Linearity (\(\phi\)) is Essential:</strong> Without activation functions, 100 stacked layers would mathematically collapse into a single flat linear layer. Non-linearities (like ReLU) bend decision boundaries so networks can learn non-linear shapes.</li>
+    <li><strong>Matrix Notation is Parallelism:</strong> Instead of writing 1,000 separate equations for 1,000 neurons, we write \(z = W a + b\). One single matrix multiplication evaluates an entire layer of neurons simultaneously.</li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. Hydraulic Flow</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <rect x="10" y="22" width="60" height="16" rx="2" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <rect x="12" y="24" width="35" height="12" fill="var(--cyan)" opacity="0.6"/>
+      <line x1="45" y1="18" x2="45" y2="42" stroke="var(--accent)" stroke-width="2.5"/>
+    </svg>
+    <h5>Constricted Inflow</h5>
+    <p>Inputs x flow in; constriction valves (weights w) throttle or reverse flow.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Pressure Chamber</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="40" cy="30" r="22" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="40" y="35" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)">&Sigma;</text>
+      <line x1="40" y1="8" x2="40" y2="18" stroke="var(--amber)" stroke-width="2"/>
+    </svg>
+    <h5>Reservoir Sum (z)</h5>
+    <p>Water accumulates into a single pressure pool; spring force adds bias (b).</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Relief Gate</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <line x1="20" y1="40" x2="40" y2="40" stroke="var(--rule-firm)" stroke-width="2"/>
+      <line x1="40" y1="40" x2="65" y2="18" stroke="var(--emerald)" stroke-width="3"/>
+      <circle cx="40" cy="40" r="3" fill="var(--emerald)"/>
+    </svg>
+    <h5>Spring Valve (&phi;)</h5>
+    <p>ReLU stays shut if pressure &le; 0; pops wide open when pressure > 0!</p>
+  </div>
+</div>
+
+<h2 id="single-neuron">A single neuron</h2>
+
+<!-- Visual Diagram: Anatomy of a Neuron -->
+<div class="diagram-box">
+  <svg viewBox="0 0 720 180" width="100%" role="img" aria-label="Anatomy of an artificial neuron: weighted inputs into an accumulator sum, plus bias, into an activation gate, producing output a">
+    <!-- Inputs x_i -->
+    <text x="50" y="35" font-size="12" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">Inputs x</text>
+    <circle cx="50" cy="65" r="15" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="50" y="70" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="ui-monospace, monospace">x₁</text>
+    <circle cx="50" cy="105" r="15" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="50" y="110" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="ui-monospace, monospace">x₂</text>
+    <circle cx="50" cy="145" r="15" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="50" y="150" text-anchor="middle" font-size="11" fill="var(--ink)" font-family="ui-monospace, monospace">x₃</text>
+
+    <!-- Weights w_i (Dials) -->
+    <line x1="65" y1="65" x2="220" y2="105" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="135" y="75" fill="var(--accent)" font-size="11" font-weight="700" font-family="ui-monospace, monospace">&times; w₁</text>
+
+    <line x1="65" y1="105" x2="220" y2="105" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="135" y="100" fill="var(--accent)" font-size="11" font-weight="700" font-family="ui-monospace, monospace">&times; w₂</text>
+
+    <line x1="65" y1="145" x2="220" y2="105" stroke="var(--rule-firm)" stroke-width="2"/>
+    <text x="135" y="140" fill="var(--accent)" font-size="11" font-weight="700" font-family="ui-monospace, monospace">&times; w₃</text>
+
+    <!-- Bias input -->
+    <line x1="260" y1="35" x2="260" y2="70" stroke="var(--amber)" stroke-width="2.5"/>
+    <text x="260" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="var(--amber)" font-family="Inter, sans-serif">+ Bias b</text>
+
+    <!-- Summing Junction (Soma) -->
+    <circle cx="260" cy="105" r="35" fill="var(--surface)" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="260" y="100" text-anchor="middle" font-size="18" font-weight="700" fill="var(--accent)" font-family="Charter, serif">&Sigma;</text>
+    <text x="260" y="122" text-anchor="middle" font-size="10" fill="var(--ink-muted)" font-family="ui-monospace, monospace">z = &sum;w_i x_i + b</text>
+
+    <!-- Pre-activation arrow -->
+    <line x1="295" y1="105" x2="380" y2="105" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="338" y="97" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">z</text>
+
+    <!-- Activation Function Gate -->
+    <rect x="380" y="70" width="110" height="70" rx="10" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="2"/>
+    <path d="M 400 120 L 435 120 L 470 85" fill="none" stroke="var(--emerald)" stroke-width="2.5"/>
+    <text x="435" y="132" text-anchor="middle" font-size="10" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">ReLU Gate &phi;(z)</text>
+
+    <!-- Activation output arrow -->
+    <line x1="490" y1="105" x2="580" y2="105" stroke="var(--emerald)" stroke-width="3"/>
+    <circle cx="610" cy="105" r="25" fill="var(--emerald-soft)" stroke="var(--emerald)" stroke-width="2"/>
+    <text x="610" y="110" text-anchor="middle" font-size="13" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">a = &phi;(z)</text>
+    <text x="610" y="145" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Neuron Output</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 3.1:</b> Physical anatomy of an artificial neuron: weighted inputs arrive at the soma accumulator, bias offsets the threshold, and the non-linear activation gate \(\phi\) regulates output firing.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: Water Pipes, Pressure Reservoir &amp; Spring Valve</span>
+  <p>To visualize why a neuron behaves the way it does, imagine a hydraulic plumbing system:</p>
+  <ul>
+    <li>Incoming pipes feed water at pressure levels <strong>\(x_1, x_2, x_3\)</strong>.</li>
+    <li>Each pipe has a manual control valve that constricts or widens the flow — these are the <strong>weights \(w_i\)</strong>. Negative weights act like suction pumps.</li>
+    <li>All water empties into an airtight accumulation chamber: the total pressure inside is the sum \(\sum w_i x_i\).</li>
+    <li>A spring-loaded pressure relief valve holds the chamber shut with resistance force <strong>\(-b\)</strong> (the bias).</li>
+    <li><strong>The ReLU Gate:</strong> If total water pressure is below the spring force (\(z \le 0\)), the valve stays shut. Zero water exits (\(a = 0\)). The instant water pressure overcomes the spring (\(z > 0\)), the valve pops wide open, and water flows out in direct linear proportion to the excess pressure!</li>
+  </ul>
+</div>
+
+<!-- Interactive Hydraulic Water Pipe Simulator -->
+<div class="panel">
+  <div class="panel-head">
+    <h4>Interactive Hydraulic Water Pipe &amp; Valve Simulator</h4>
+    <span class="hint">Physical Intuition: Pressure summation &amp; spring-loaded relief valve</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+      <label>Pipe 1 Flow (x₁): <b id="hyd-x1-val">2.5</b><input id="hyd-x1" type="range" min="0" max="4" step="0.1" value="2.5"></label>
+      <label>Pipe 2 Flow (x₂): <b id="hyd-x2-val">1.5</b><input id="hyd-x2" type="range" min="0" max="4" step="0.1" value="1.5"></label>
+      <label>Valve 1 (w₁): <b id="hyd-w1-val">1.00</b><input id="hyd-w1" type="range" min="-2" max="2" step="0.1" value="1.0"></label>
+      <label>Valve 2 (w₂): <b id="hyd-w2-val">-0.50</b><input id="hyd-w2" type="range" min="-2" max="2" step="0.1" value="-0.5"></label>
+      <label>Spring Bias (b): <b id="hyd-b-val">-0.80</b><input id="hyd-b" type="range" min="-3" max="2" step="0.1" value="-0.8"></label>
+    </div>
+    <div style="margin-top:0.75rem">
+      <label style="font-family:var(--font-ui);font-size:0.78rem;font-weight:600;color:var(--ink-muted)">
+        Relief Valve Type:
+        <select id="hyd-valve-type" style="padding:0.35rem 0.6rem;border-radius:6px;border:1px solid var(--rule-firm);background:var(--surface);margin-left:0.5rem">
+          <option value="relu">Spring-Loaded Check Valve (ReLU: Opens when z > 0)</option>
+          <option value="sigmoid">Elastic Rubber Diaphragm (Sigmoid: Saturates 0 to 1)</option>
+        </select>
+      </label>
+    </div>
+    <div class="canvas-wrap" style="margin-top:0.75rem">
+      <canvas id="hydraulic-canvas" width="580" height="220"></canvas>
+    </div>
+    <div id="hyd-readout"></div>
+  </div>
+</div>
+
+<p>Give a neuron five inputs \(x_1,\dots,x_5\), each arriving along an edge carrying a weight
+\(w_1,\dots,w_5\). The neuron multiplies each input by its own weight, adds the results, and adds a
+bias:</p>
+
+<div class="eq headline" data-n="3.1">\[ z=\sum_{i=1}^{n}x_iw_i+b=\mathbf w\T\mathbf x+b \]</div>
+
+<!-- Visual Formula Decoder for Layer Equation -->
+<div class="visual-decoder">
+  <span class="decoder-title">Visual Formula Decoder &middot; The Layer Affine Equation</span>
+  <div class="formula-hero">
+    <span style="color:var(--accent)">\(\mathbf{z}^l\)</span> =
+    <span style="color:var(--amber)">\(W^l\)</span> &middot;
+    <span style="color:var(--cyan)">\(\mathbf{a}^{l-1}\)</span> +
+    <span style="color:var(--rose)">\(\mathbf{b}^l\)</span>
+  </div>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">\(\mathbf{z}^l\) (Destination Pressures)</span>
+      <span class="symbol-desc">Layer Pre-activations</span>
+      <p>Column vector of pre-activations for all \(n_l\) neurons in the current layer.</p>
+    </div>
+    <div class="decoder-card amber">
+      <span class="term" style="color:var(--amber)">\(W^l\) (\(n_l \times n_{l-1}\))</span>
+      <span class="symbol-desc">Wire Connections</span>
+      <p>Grid of weights. Row \(j\) contains all incoming wires feeding neuron \(j\).</p>
+    </div>
+    <div class="decoder-card" style="border-left:3px solid var(--cyan)">
+      <span class="term" style="color:var(--cyan)">\(\mathbf{a}^{l-1}\) (Source Signals)</span>
+      <span class="symbol-desc">Prior Activations</span>
+      <p>Outputs sent from previous layer neurons. Multiplies the weight matrix from the right.</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">\(\mathbf{b}^l\) (Threshold Shifts)</span>
+      <span class="symbol-desc">Layer Biases</span>
+      <p>Individual baseline shifts for each destination neuron in layer \(l\).</p>
+    </div>
+  </div>
+</div>
+
+<p>Note what just happened to the dimensions. Two length-\(n\) vectors went in and a single number
+came out — the sum collapses everything. A neuron's linear part is a map
+\(\mathbb R^n\to\mathbb R\), which is to say exactly the kind of function that has a gradient.</p>
+
+<p>The bias \(b\) is a scalar attached to the neuron, added unconditionally. It shifts the threshold
+at which the neuron activates and is a learnable parameter like any weight.</p>
+
+<p>Then \(z\) passes through a non-linear activation function:</p>
+
+<div class="eq" data-n="3.2">\[ a=\phi(z) \]</div>
+
+<div class="note def">
+  <span class="label">Why the non-linearity is not optional</span>
+  <p>Without \(\phi\), a layer computes an affine map, and composing affine maps gives another affine
+  map: \(W^2(W^1\mathbf x+b^1)+b^2 = (W^2W^1)\mathbf x + (W^2b^1+b^2)\). A hundred stacked linear
+  layers would collapse into one, and no depth would buy anything. The activation function is what
+  keeps the composition from flattening.</p>
+</div>
+
+<h3>Choosing \(\phi\)</h3>
+
+<p>This guide runs its derivations with ReLU, following modern deep learning convention and the Parr–Howard matrix
+calculus framework, because its derivative is trivial and the piecewise structure is instructive. The
+common alternatives, with the derivatives you will need in chapter 6:</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Name</th><th>\(\phi(z)\)</th><th>\(\phi'(z)\)</th><th>Note</th></tr></thead>
+  <tbody>
+    <tr><td>ReLU</td><td>\(\max(0,z)\)</td><td>\(0\) if \(z&lt;0\), \(1\) if \(z&gt;0\)</td><td>Undefined at \(0\); implementations pick 0 and never notice.</td></tr>
+    <tr><td>Sigmoid</td><td>\(\sigma(z)=\dfrac{1}{1+e^{-z}}\)</td><td>\(\sigma(z)\bigl(1-\sigma(z)\bigr)\)</td><td>Peaks at \(0.25\), so gradients shrink through depth.</td></tr>
+    <tr><td>tanh</td><td>\(\tanh z\)</td><td>\(1-\tanh^2 z\)</td><td>Zero-centred; peaks at 1.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<!-- Interactive Activation Curve & Slope Explorer -->
+<div class="panel">
+  <div class="panel-head">
+    <h4>Interactive Activation Function &amp; Tangent Slope Explorer</h4>
+    <span class="hint">Toggle functions and slide z to watch activation and local derivative live</span>
+  </div>
+  <div class="panel-body">
+    <div class="btn-group">
+      <button class="btn act-btn active" data-act="relu">ReLU</button>
+      <button class="btn act-btn" data-act="sigmoid">Sigmoid &sigma;(z)</button>
+      <button class="btn act-btn" data-act="tanh">Tanh</button>
+      <button class="btn act-btn" data-act="leaky">Leaky ReLU</button>
+    </div>
+    <div class="controls">
+      <label>Pre-activation (z): <output id="act-z-val">1.50</output>
+        <input id="act-z-slider" type="range" min="-4" max="4" step="0.1" value="1.5">
+      </label>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="act-canvas"></canvas>
+      <span class="canvas-badge">Live Tangent Slope</span>
+    </div>
+    <div id="act-details"></div>
+  </div>
+</div>
+
+<p>Only two properties of \(\phi\) matter mathematically: it must be non-linear, and it must be
+differentiable where we need it. Everything else is an engineering preference.</p>
+
+<div class="panel">
+  <div class="panel-head">
+    <h4>Neuron sandbox</h4>
+    <span class="hint">two inputs, ReLU activation</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>x&#8321; <input id="nx1" type="number" value="2" step="0.1"></label>
+      <label>x&#8322; <input id="nx2" type="number" value="1" step="0.1"></label>
+      <label>w&#8321; <input id="nw1" type="number" value="1.5" step="0.1"></label>
+      <label>w&#8322; <input id="nw2" type="number" value="-0.5" step="0.1"></label>
+      <label>b <input id="nb" type="number" value="0.2" step="0.1"></label>
+    </div>
+    <div id="neuron-out"></div>
+    <p style="font-size:.9rem;color:var(--ink-muted);margin-top:.8rem">Push \(z\) below zero and watch every
+    derivative collapse to zero at once. That is chapter 4's piecewise branch, live.</p>
+  </div>
+</div>
+
+<h2 id="layer">From one neuron to a layer</h2>
+
+<p>Put three neurons side by side and feed all five inputs to each of them. Every neuron has its own
+five weights and its own bias, and each produces one scalar. Three scalars stack into a vector — and
+that vector is the input to the next layer.</p>
+
+<p>Writing three separate dot products is wasteful when a single matrix product does the same work.
+Collect the weights into a matrix \(W^l\) with, as established in chapter 1, <strong>rows indexed by
+destination neuron \(j\) and columns by source neuron \(k\)</strong>. Then:</p>
+
+<div class="eq headline" data-n="3.3">\[ z^l = W^l a^{l-1}+b^l, \qquad a^l=\phi(z^l) \]</div>
+
+<p>Row \(j\) of \(W^l\) holds exactly the weights feeding neuron \(j\), so row \(j\) of the product is
+row \(j\) dotted with \(a^{l-1}\) — precisely the weighted sum that neuron \(j\) wanted. The matrix
+form is not a different computation. It is the same \(n_l\) dot products, issued at once.</p>
+
+<!-- Visual Diagram: Matrix Multiplication as Layer Forward Pass -->
+<div class="diagram-box">
+  <svg viewBox="0 0 680 150" width="100%" role="img" aria-label="Matrix multiplication as layer forward pass: rows of W dotted with activation vector a">
+    <!-- Matrix W -->
+    <rect x="70" y="35" width="150" height="80" rx="8" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="2"/>
+    <rect x="75" y="42" width="140" height="30" rx="4" fill="var(--accent-soft)"/>
+    <text x="145" y="62" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent-ink)" font-family="ui-monospace, monospace">Row 1: [w₁₁  w₁₂  w₁₃]</text>
+    <text x="145" y="98" text-anchor="middle" font-size="12" fill="var(--ink-muted)" font-family="ui-monospace, monospace">Row 2: [w₂₁  w₂₂  w₂₃]</text>
+    <text x="145" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">Weight Matrix Wˡ (2&times;3)</text>
+
+    <!-- Times symbol -->
+    <text x="245" y="82" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink-muted)">&times;</text>
+
+    <!-- Vector a -->
+    <rect x="270" y="30" width="65" height="90" rx="8" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="302" y="55" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)" font-family="ui-monospace, monospace">aˡ⁻¹₁</text>
+    <text x="302" y="80" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)" font-family="ui-monospace, monospace">aˡ⁻¹₂</text>
+    <text x="302" y="105" text-anchor="middle" font-size="12" font-weight="600" fill="var(--accent)" font-family="ui-monospace, monospace">aˡ⁻¹₃</text>
+    <text x="302" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">aˡ⁻¹ (3&times;1)</text>
+
+    <!-- Plus b -->
+    <text x="360" y="82" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink-muted)">+</text>
+    <rect x="385" y="45" width="55" height="60" rx="8" fill="var(--surface)" stroke="var(--amber)" stroke-width="2"/>
+    <text x="412" y="70" text-anchor="middle" font-size="12" font-weight="600" fill="var(--amber)" font-family="ui-monospace, monospace">bˡ₁</text>
+    <text x="412" y="95" text-anchor="middle" font-size="12" font-weight="600" fill="var(--amber)" font-family="ui-monospace, monospace">bˡ₂</text>
+    <text x="412" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="var(--amber)" font-family="Inter, sans-serif">bˡ (2&times;1)</text>
+
+    <!-- Equals z -->
+    <text x="465" y="82" text-anchor="middle" font-size="18" font-weight="700" fill="var(--ink-muted)">=</text>
+    <rect x="490" y="45" width="130" height="60" rx="8" fill="var(--emerald-soft)" stroke="var(--emerald)" stroke-width="2"/>
+    <text x="555" y="70" text-anchor="middle" font-size="12" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">zˡ₁ = Row 1 &middot; a + b₁</text>
+    <text x="555" y="95" text-anchor="middle" font-size="12" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">zˡ₂ = Row 2 &middot; a + b₂</text>
+    <text x="555" y="32" text-anchor="middle" font-size="11" font-weight="700" fill="var(--emerald)" font-family="Inter, sans-serif">Pre-activations zˡ (2&times;1)</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 3.3:</b> Layer forward pass in matrix form. Each row of \(W^l\) is the weight vector of one neuron, dotted with the incoming activations \(a^{l-1}\), plus that neuron's bias.
+  </div>
+</div>
+
+<div class="note shape">
+  <span class="label">Shape check</span>
+  <p>\(\underbrace{W^l}_{n_l\times n_{l-1}}\;\underbrace{a^{l-1}}_{n_{l-1}\times1}\;+\;\underbrace{b^l}_{n_l\times1}\;=\;\underbrace{z^l}_{n_l\times1}\)</p>
+  <p>The inner \(n_{l-1}\) cancels. The surviving \(n_l\) is the width of this layer, which is also
+  what \(b^l\) and \(z^l\) must be. If your bias has the wrong length, this line finds it.</p>
+</div>
+
+<h3>Worked by hand</h3>
+
+<p>A two-input, two-neuron layer. Suppose the four weights are: \(x_1\to\) neuron 1 is 5, \(x_2\to\)
+neuron 1 is 2, \(x_1\to\) neuron 2 is 3, \(x_2\to\) neuron 2 is 6. Place each into row
+\(j\), column \(k\):</p>
+
+<div class="eq" data-n="3.4">\[ W^1=\begin{bmatrix}5&2\\ 3&6\end{bmatrix} \]</div>
+
+<p>Entry \((1,1)=5\) comes from source 1 and lands at destination 1. Entry \((1,2)=2\) comes from
+source 2 and still lands at destination 1 — same row, because the row is the destination. Now push
+the input \(a^0=\begin{bmatrix}10\\20\end{bmatrix}\) through, with a shared bias of 6:</p>
+
+<ol class="derivation">
+  <li>
+    <strong>Matrix product.</strong>
+    <div class="eq">\[ W^1a^0=\begin{bmatrix}5&2\\ 3&6\end{bmatrix}\begin{bmatrix}10\\ 20\end{bmatrix}=\begin{bmatrix}5(10)+2(20)\\ 3(10)+6(20)\end{bmatrix}=\begin{bmatrix}90\\ 150\end{bmatrix} \]</div>
+    <span class="why">Row 1 is the dot product of neuron 1's weights with the inputs — the same arithmetic a single neuron does.</span>
+  </li>
+  <li>
+    <strong>Add the bias.</strong>
+    <div class="eq">\[ z^1=\begin{bmatrix}90\\ 150\end{bmatrix}+\begin{bmatrix}6\\ 6\end{bmatrix}=\begin{bmatrix}96\\ 156\end{bmatrix} \]</div>
+  </li>
+  <li>
+    <strong>Activate.</strong>
+    <div class="eq">\[ a^1=\operatorname{ReLU}(z^1)=\begin{bmatrix}96\\ 156\end{bmatrix} \]</div>
+    <span class="why">Both entries are positive, so ReLU passes them unchanged. Sigmoid would have flattened both to within a hair of 1 — a good illustration of why ReLU became the default.</span>
+  </li>
+</ol>
+
+<p>\(a^1\) is now the input to layer 2, and the same three steps repeat with \(W^2\) and \(b^2\).</p>
+
+<h2 id="forward">Forward propagation</h2>
+
+<p>Chaining the layer equation gives the forward pass. Written as a chain of substitutions, which is
+far more useful for deriving things than a picture of circles:</p>
+
+<div class="eq" data-n="3.5">\[ a^1=\phi\bigl(W^1a^0+b^1\bigr) \]</div>
+<div class="eq" data-n="3.6">\[ a^2=\phi\bigl(W^2a^1+b^2\bigr)=\phi\Bigl(W^2\phi\bigl(W^1a^0+b^1\bigr)+b^2\Bigr) \]</div>
+
+<p>and so on to \(a^L=\hat y\). Equation 3.6 makes the nesting visible: the network really is one
+composed function, with the parameters buried at different depths. Getting a derivative out with
+respect to \(W^1\) means reaching through every layer above it.</p>
+
+<div class="note def">
+  <span class="label">Forward propagation</span>
+  <ol style="margin-bottom:0">
+    <li>Set \(a^0=\mathbf x\).</li>
+    <li>For \(l=1,\dots,L\): compute \(z^l=W^la^{l-1}+b^l\), then \(a^l=\phi(z^l)\).</li>
+    <li>Read off the prediction \(\hat y=a^L\).</li>
+  </ol>
+</div>
+
+<p>A trained network needs nothing more than this: feed an image in as \(x_1,\dots,x_n\), read a
+classification out. Everything in the remaining chapters exists to produce good values of \(W^l\) and
+\(b^l\), after which forward propagation is the whole of what the model does.</p>
+
+<div class="note shape">
+  <span class="label">Shape ledger for a 3&ndash;4&ndash;4&ndash;1 network</span>
+  <div class="table-wrap" style="margin:.6rem 0 0">
+  <table>
+    <thead><tr><th>Layer</th><th>\(W^l\)</th><th>\(b^l\)</th><th>\(z^l,a^l\)</th></tr></thead>
+    <tbody>
+      <tr><td>input</td><td>&mdash;</td><td>&mdash;</td><td>\(a^0:3\times1\)</td></tr>
+      <tr><td>1</td><td>\(4\times3\)</td><td>\(4\times1\)</td><td>\(4\times1\)</td></tr>
+      <tr><td>2</td><td>\(4\times4\)</td><td>\(4\times1\)</td><td>\(4\times1\)</td></tr>
+      <tr><td>3</td><td>\(1\times4\)</td><td>\(1\times1\)</td><td>\(1\times1\)</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p style="margin-top:.7rem">Total parameters: \(12+4+16+4+4+1=41\). Training needs 41 partial
+  derivatives of \(C\), one per entry in this table.</p>
+</div>
+
+<h2 id="cost">The cost function</h2>
+
+<p>Before training, the weights are random and \(\hat y\) is worthless. To improve it we need a
+number that says how worthless. That is the cost function, and this guide uses <strong>mean squared
+error</strong>:</p>
+
+<div class="eq headline" data-n="3.7">\[ C=\frac{1}{2m}\sum_{i=1}^{m}\bigl(y^{(i)}-a^{L,(i)}\bigr)^{2} \]</div>
+
+<p>Read it left to right: for each of the \(m\) training examples, take the gap between the true
+answer \(y^{(i)}\) and the network's prediction \(a^{L,(i)}\), square it, sum over all examples, then
+average.</p>
+
+<h3>Why the square</h3>
+
+<p>It makes every error positive, so overshooting by 3 and undershooting by 3 cannot cancel out. It
+also penalises large errors disproportionately, and it is smoothly differentiable everywhere —
+unlike the absolute value, which has a corner at zero.</p>
+
+<h3>Why the \(\tfrac12\)</h3>
+
+<p>Pure convenience, and it costs nothing. Differentiating a square brings down a factor of 2 by the
+power rule, and that 2 cancels the \(\tfrac12\):</p>
+
+<div class="eq" data-n="3.8">\[ \frac{\partial}{\partial a}\;\frac12(y-a)^2=\tfrac12\cdot 2(y-a)\cdot(-1)=-(y-a)=a-y \]</div>
+
+<p>Scaling a cost by a positive constant moves the minimum nowhere, so we are free to pick the
+constant that makes the derivative tidiest. The result — the derivative of the cost with respect to
+the prediction is simply <em>prediction minus target</em> — is the cleanest possible starting point
+for backpropagation.</p>
+
+<h3>Why the mean</h3>
+
+<p>Without \(1/m\), the cost of a million-example dataset would be a million times larger than the
+cost of the same model on one example, and a learning rate tuned on one dataset would be nonsense on
+another. Averaging makes the objective comparable across dataset sizes.</p>
+
+<div class="note pitfall">
+  <span class="label">Sign convention</span>
+  <p>\((y-a)^2\) and \((a-y)^2\) are the same number, so the cost does not care which way round you
+  write it. The <em>derivative</em> very much does — the two differ by a sign.</p>
+  <p>Chapter 4 derives with \(y-a\), carrying the minus sign through
+  explicitly; chapter 6 uses \(a-y\), which absorbs it. Both reach the same place. When you write
+  this yourself, pick one orientation and never switch mid-derivation, because a flipped sign in the
+  gradient turns descent into ascent and the loss climbs instead of falling.</p>
+</div>
+
+<h2 id="many-examples">Many examples at once</h2>
+
+<p>The cost sums over \(m\) examples, so we need notation for a whole training set. Stack the
+examples as <strong>columns</strong>:</p>
+
+<div class="eq" data-n="3.9">\[ X=\begin{bmatrix}x^{(1)}_1&x^{(2)}_1&\cdots&x^{(m)}_1\\ x^{(1)}_2&x^{(2)}_2&\cdots&x^{(m)}_2\\ \vdots&\vdots&&\vdots\\ x^{(1)}_n&x^{(2)}_n&\cdots&x^{(m)}_n\end{bmatrix} \]</div>
+
+<p>Superscripts in parentheses index the example, subscripts index the variable. So \(X\) is
+\(n\times m\): rows are features, columns are examples. Each column has its own known answer
+\(y^{(i)}\), which is what makes this supervised learning.</p>
+
+<p>The pleasant consequence is that \(W^1X\) forward-propagates the entire training set in one matrix
+product, column by column, with no loop. That is the shape convention's real payoff and it is why
+this ordering is worth the initial awkwardness.</p>
+
+<div class="note key">
+  <span class="label">Where we are</span>
+  <p>We can now push an input through a network and score the result. Everything is in place to ask
+  the only question that matters: <strong>how does \(C\) change when a single weight changes?</strong>
+  Chapter 4 answers it completely for one neuron.</p>
+</div>
+
+<h2 id="self-check">Self-check</h2>
+
+<details class="check">
+  <summary>A layer has \(W^l\) of shape \(7\times4\). How many neurons are in layer \(l\), and in layer \(l-1\)?</summary>
+  <div class="answer">
+    <p>Seven in layer \(l\), four in layer \(l-1\). Rows are destinations, columns are sources. The
+    layer also has 7 biases, giving \(28+7=35\) parameters.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why can the bias not be folded into the weights?</summary>
+  <div class="answer">
+    <p>It can, and often is. Append a constant 1 to the input vector and give it a weight; that
+    weight then behaves exactly as the bias. The trick keeps the algebra to a single matrix product
+    and shows up in older texts.</p>
+    <p>This guide keeps \(b\) separate because the bias derivative comes out different in kind from
+    the weight derivative — chapter 4 shows \(\partial C/\partial b\) is the bare error while
+    \(\partial C/\partial \mathbf w\) is the error scaled by the inputs — and that contrast is worth
+    seeing rather than hiding.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>What would happen if every activation function were the identity?</summary>
+  <div class="answer">
+    <p>The network would collapse to a single affine map. \(W^2(W^1x+b^1)+b^2=(W^2W^1)x+(W^2b^1+b^2)\),
+    and by induction any depth reduces to one effective weight matrix and one effective bias. Depth
+    would be pure waste and the model could only ever fit a linear relationship.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>In \(C=\frac{1}{2m}\sum(y-a^L)^2\), what is \(\partial C/\partial a^L\) for a single example?</summary>
+  <div class="answer">
+    <p>\(a^L-y\). The \(\tfrac12\) cancels the 2 from the power rule and the minus sign from the
+    inner derivative of \(y-a^L\) flips the order. This is the first quantity backpropagation
+    computes, and chapter 6 calls it \(\nabla_{a}C\).</p>
+  </div>
+</details>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="02-matrix-calculus.html"><span class="dir">&larr; Previous</span><span class="title">2. The matrix calculus toolkit</span></a>
+  <a class="next" href="04-neuron-derivatives.html"><span class="dir">Next &rarr;</span><span class="title">4. Differentiating a single neuron</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

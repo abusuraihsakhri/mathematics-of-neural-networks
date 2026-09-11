@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>7. Reference — Mathematics of Neural Networks</title>
+<meta name="description" content="Notation table, shape ledger, the complete formula sheet, a glossary and the reading list.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">7. Reference</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html" aria-current="page"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 7</p>
+  <h1>Reference</h1>
+  <p class="standfirst">Every symbol, every shape and every equation in one place — for use while
+  working through the derivations, or afterwards when only the formula is wanted.</p>
+</header>
+
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; Quick Lookup Cheat Sheet</span>
+  <p><strong>The entire neural network theory in three golden rules:</strong></p>
+  <ul>
+    <li><strong>Golden Rule 1 (Forward Flow):</strong> Inputs multiply weights from the right: \(z^l = W^l a^{l-1} + b^l\). Destination neurons are rows; source neurons are columns.</li>
+    <li><strong>Golden Rule 2 (Backward Flow):</strong> Errors pull backward through transposed weights: \(\delta^l = ((W^{l+1})\T \delta^{l+1}) \odot \phi'(z^l)\). The transpose flips rows and columns to reverse signal flow.</li>
+    <li><strong>Golden Rule 3 (Parameter Gradients):</strong> Biases get raw error (\(\nabla_b C = \delta\)). Weights get an outer product of outgoing error and incoming activation (\(\nabla_W C = \delta (a^{\text{in}})\T\)).</li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. Matrix Contraction</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <rect x="15" y="15" width="26" height="30" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+      <rect x="47" y="15" width="10" height="30" fill="var(--cyan-soft)" stroke="var(--cyan)" stroke-width="1.5"/>
+      <text x="65" y="34" font-size="12" fill="var(--ink)">&rarr;</text>
+    </svg>
+    <h5>Forward Contraction</h5>
+    <p>Inner dimensions collapse: \((n_l \times n_{l-1})(n_{l-1} \times 1) \to n_l \times 1\).</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Wire Inversion</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <rect x="15" y="15" width="30" height="15" fill="var(--rose-soft)" stroke="var(--rose)" stroke-width="1.5"/>
+      <text x="50" y="27" font-size="11" fill="var(--ink)">&rarr;</text>
+      <rect x="58" y="15" width="15" height="30" fill="var(--rose-soft)" stroke="var(--rose)" stroke-width="1.5"/>
+    </svg>
+    <h5>Transpose Pullback</h5>
+    <p>Transposing flips rows &amp; columns so errors flow backwards: \((W^{l+1})\T \delta^{l+1}\).</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Outer Product</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <rect x="15" y="15" width="10" height="30" fill="var(--emerald-soft)" stroke="var(--emerald)" stroke-width="1.5"/>
+      <rect x="32" y="15" width="30" height="10" fill="var(--amber-soft)" stroke="var(--amber)" stroke-width="1.5"/>
+    </svg>
+    <h5>Matrix Expansion</h5>
+    <p>Column times row expands into a full matrix: \(\delta^l (a^{l-1})\T = \nabla_W C\).</p>
+  </div>
+</div>
+
+<!-- Master Visual Formula Decoder -->
+<div class="visual-decoder">
+  <span class="decoder-title">Master Visual Formula Decoder &middot; The Four Backprop Pillars</span>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">BP1: \(\delta^L = \nabla_a C \odot \phi'(z^L)\)</span>
+      <span class="symbol-desc">Output Error Seed</span>
+      <p>Compares prediction against target, modulated by the output gate's slope.</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">BP2: \(\delta^l = ((W^{l+1})\T\delta^{l+1}) \odot \phi'(z^l)\)</span>
+      <span class="symbol-desc">Hidden Layer Pullback</span>
+      <p>Pulls blame backward through transposed connection weights layer by layer.</p>
+    </div>
+    <div class="decoder-card emerald">
+      <span class="term" style="color:var(--emerald)">BP3: \(\nabla_b C = \delta\)</span>
+      <span class="symbol-desc">Bias Gradients</span>
+      <p>Biases inherit the raw node errors directly with zero extra arithmetic.</p>
+    </div>
+    <div class="decoder-card amber">
+      <span class="term" style="color:var(--amber)">BP4: \(\nabla_W C = \delta (a^{\text{in}})\T\)</span>
+      <span class="symbol-desc">Weight Gradients</span>
+      <p>Outer product multiplying outgoing error by incoming wire activity.</p>
+    </div>
+  </div>
+</div>
+
+<h2 id="notation">Notation</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Symbol</th><th>Meaning</th><th>Shape</th></tr></thead>
+  <tbody>
+    <tr><td>\(m\)</td><td>number of training examples</td><td>scalar</td></tr>
+    <tr><td>\(n\)</td><td>number of input variables</td><td>scalar</td></tr>
+    <tr><td>\(L\)</td><td>number of layers</td><td>scalar</td></tr>
+    <tr><td>\(l\)</td><td>index of a layer</td><td>index</td></tr>
+    <tr><td>\(n_l\)</td><td>number of neurons in layer \(l\)</td><td>scalar</td></tr>
+    <tr><td>\(\mathbf x\)</td><td>one training example</td><td>\(n\times1\)</td></tr>
+    <tr><td>\(X\)</td><td>whole training set, examples as columns</td><td>\(n\times m\)</td></tr>
+    <tr><td>\(y\)</td><td>target for one example</td><td>scalar or \(n_L\times1\)</td></tr>
+    <tr><td>\(a^0\)</td><td>input, as the zeroth activation</td><td>\(n\times1\)</td></tr>
+    <tr><td>\(W^l\)</td><td>weights <em>arriving at</em> layer \(l\)</td><td>\(n_l\times n_{l-1}\)</td></tr>
+    <tr><td>\(w^l_{jk}\)</td><td>weight from neuron \(k\) in \(l-1\) to neuron \(j\) in \(l\)</td><td>scalar</td></tr>
+    <tr><td>\(b^l\)</td><td>biases of layer \(l\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(z^l\)</td><td>pre-activation of layer \(l\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(a^l\)</td><td>activation of layer \(l\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(\phi\)</td><td>activation function, element-wise</td><td>function</td></tr>
+    <tr><td>\(\hat y = a^L\)</td><td>network prediction</td><td>\(n_L\times1\)</td></tr>
+    <tr><td>\(C\)</td><td>cost</td><td>scalar</td></tr>
+    <tr><td>\(e\)</td><td>error on one example, \(a^L-y\)</td><td>like \(y\)</td></tr>
+    <tr><td>\(\delta^l\)</td><td>node errors of layer \(l\), \(\partial C/\partial z^l\)</td><td>\(n_l\times1\)</td></tr>
+    <tr><td>\(\theta\)</td><td>all weights and biases, unrolled</td><td>\(P\times1\)</td></tr>
+    <tr><td>\(\eta\)</td><td>learning rate</td><td>scalar</td></tr>
+    <tr><td>\(\odot\)</td><td>Hadamard (element-wise) product</td><td>operator</td></tr>
+    <tr><td>\(\nabla\)</td><td>gradient (nabla)</td><td>operator</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="shapes">Shape ledger</h2>
+
+<p>When a derivation goes wrong, it is almost always a shape. Check against this before anything
+else.</p>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 620 190" width="100%" role="img" aria-label="Figure 7.1: Master Tensor Shape and Matrix Multiplication Cheat Sheet">
+    <!-- Box 1: Forward Pass -->
+    <g transform="translate(10, 15)">
+      <rect width="186" height="160" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="93" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)">Forward Pass (Affine)</text>
+      <text x="93" y="46" text-anchor="middle" font-size="13" font-family="ui-monospace, monospace" fill="var(--ink)">zˡ = Wˡ &middot; aˡ⁻¹ + bˡ</text>
+      <line x1="15" y1="58" x2="171" y2="58" stroke="var(--rule)"/>
+      <text x="20" y="78" font-size="10" fill="var(--ink-muted)">Wˡ:</text>
+      <text x="166" y="78" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ &times; nˡ⁻¹)</text>
+      <text x="20" y="100" font-size="10" fill="var(--ink-muted)">aˡ⁻¹:</text>
+      <text x="166" y="100" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ⁻¹ &times; 1)</text>
+      <text x="20" y="122" font-size="10" fill="var(--ink-muted)">bˡ:</text>
+      <text x="166" y="122" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ &times; 1)</text>
+      <rect x="15" y="134" width="156" height="18" fill="var(--accent-soft)" rx="3"/>
+      <text x="93" y="146" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--accent-ink)">Output: (nˡ &times; 1)</text>
+    </g>
+
+    <!-- Box 2: BP2 Pullback -->
+    <g transform="translate(216, 15)">
+      <rect width="186" height="160" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="93" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)">BP2 Error Pullback</text>
+      <text x="93" y="46" text-anchor="middle" font-size="13" font-family="ui-monospace, monospace" fill="var(--ink)">&delta;ˡ = (Wˡ⁺¹)ᵀ &delta;ˡ⁺¹ &odot; &phi;'</text>
+      <line x1="15" y1="58" x2="171" y2="58" stroke="var(--rule)"/>
+      <text x="20" y="78" font-size="10" fill="var(--ink-muted)">(Wˡ⁺¹)ᵀ:</text>
+      <text x="166" y="78" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ &times; nˡ⁺¹)</text>
+      <text x="20" y="100" font-size="10" fill="var(--ink-muted)">&delta;ˡ⁺¹:</text>
+      <text x="166" y="100" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ⁺¹ &times; 1)</text>
+      <text x="20" y="122" font-size="10" fill="var(--ink-muted)">&phi;'(zˡ):</text>
+      <text x="166" y="122" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ &times; 1)</text>
+      <rect x="15" y="134" width="156" height="18" fill="var(--rose-soft)" rx="3"/>
+      <text x="93" y="146" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--rose-ink)">Output: (nˡ &times; 1)</text>
+    </g>
+
+    <!-- Box 3: BP4 Weight Gradient -->
+    <g transform="translate(422, 15)">
+      <rect width="188" height="160" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="94" y="24" text-anchor="middle" font-size="11" font-weight="700" fill="var(--emerald)">BP4 Weight Gradient</text>
+      <text x="94" y="46" text-anchor="middle" font-size="13" font-family="ui-monospace, monospace" fill="var(--ink)">&nabla;Wˡ = &delta;ˡ &otimes; (aˡ⁻¹)ᵀ</text>
+      <line x1="15" y1="58" x2="173" y2="58" stroke="var(--rule)"/>
+      <text x="20" y="78" font-size="10" fill="var(--ink-muted)">&delta;ˡ (col):</text>
+      <text x="168" y="78" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(nˡ &times; 1)</text>
+      <text x="20" y="100" font-size="10" fill="var(--ink-muted)">(aˡ⁻¹)ᵀ (row):</text>
+      <text x="168" y="100" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">(1 &times; nˡ⁻¹)</text>
+      <text x="20" y="122" font-size="10" fill="var(--ink-muted)">Operation:</text>
+      <text x="168" y="122" text-anchor="end" font-size="10" font-family="ui-monospace" font-weight="600" fill="var(--ink)">Outer Product</text>
+      <rect x="15" y="134" width="158" height="18" fill="var(--emerald-soft)" rx="3"/>
+      <text x="94" y="146" text-anchor="middle" font-size="9.5" font-weight="700" fill="var(--emerald-ink)">Matches Wˡ: (nˡ &times; nˡ⁻¹)</text>
+    </g>
+  </svg>
+  <div class="diagram-caption"><strong>Figure 7.1:</strong> Dimensional cheat sheet for neural network equations. The inner dimensions always cancel (matrix contraction), while outer product forms full matrix shapes matching parameter tensors.</div>
+</div>
+
+<div class="panel" id="shape-calc">
+  <div class="panel-head">
+    <h4>Interactive Tensor Shape &amp; Network Dimension Calculator</h4>
+    <span class="hint">Live layer dimensions &amp; matrix product validator</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>Inputs (n₀): <b id="sc-in-val">3</b><br><input id="sc-in" type="range" min="1" max="16" value="3"></label>
+      <label>Hidden 1 (n₁): <b id="sc-h1-val">4</b><br><input id="sc-h1" type="range" min="1" max="32" value="4"></label>
+      <label>Hidden 2 (n₂): <b id="sc-h2-val">4</b><br><input id="sc-h2" type="range" min="1" max="32" value="4"></label>
+      <label>Outputs (n₃): <b id="sc-out-val">1</b><br><input id="sc-out" type="range" min="1" max="10" value="1"></label>
+    </div>
+    <div id="sc-res"></div>
+  </div>
+</div>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Expression</th><th>Result shape</th><th>Because</th></tr></thead>
+  <tbody>
+    <tr><td>\(W^la^{l-1}\)</td><td>\(n_l\times1\)</td><td>\((n_l\times n_{l-1})(n_{l-1}\times1)\)</td></tr>
+    <tr><td>\((W^{l+1})\T\delta^{l+1}\)</td><td>\(n_l\times1\)</td><td>\((n_l\times n_{l+1})(n_{l+1}\times1)\)</td></tr>
+    <tr><td>\(\delta^l\odot\phi'(z^l)\)</td><td>\(n_l\times1\)</td><td>element-wise, shape preserved</td></tr>
+    <tr><td>\(\delta^l(a^{l-1})\T\)</td><td>\(n_l\times n_{l-1}\)</td><td>outer product, matches \(W^l\)</td></tr>
+    <tr><td>\(\mathbf 1\T\operatorname{diag}(\mathbf x)\)</td><td>\(1\times n\)</td><td>reads the diagonal as a row</td></tr>
+    <tr><td>\(J_f\) for \(f:\mathbb R^n\to\mathbb R^m\)</td><td>\(m\times n\)</td><td>rows are outputs, columns are inputs</td></tr>
+    <tr><td>\(\nabla f\) for \(f:\mathbb R^n\to\mathbb R\)</td><td>\(n\times1\)</td><td>one entry per input</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="calculus">Matrix calculus results</h2>
+
+<div class="eq" data-n="R1">\[ \nabla f=\begin{bmatrix}\partial f/\partial x_1\\ \vdots\\ \partial f/\partial x_n\end{bmatrix} \qquad\qquad \bigl(J_f\bigr)_{ij}=\frac{\partial f_i}{\partial x_j} \]</div>
+
+<div class="eq" data-n="R2">\[ J_{f\circ g}(\mathbf x)=J_f\bigl(\mathbf g(\mathbf x)\bigr)\,J_g(\mathbf x) \qquad\text{(outer factor on the left)} \]</div>
+
+<div class="eq" data-n="R3">\[ \frac{\partial(\mathbf v\odot\mathbf w)}{\partial\mathbf v}=\operatorname{diag}(\mathbf w), \qquad \frac{\partial(\mathbf v\odot\mathbf w)}{\partial\mathbf w}=\operatorname{diag}(\mathbf v) \]</div>
+
+<div class="eq" data-n="R4">\[ \frac{\partial(\mathbf vz)}{\partial z}=\mathbf v, \qquad \frac{\partial(\mathbf v+z)}{\partial z}=\mathbf 1, \qquad \frac{\partial}{\partial\mathbf v}\sum_i v_i=\mathbf 1\T \]</div>
+
+<div class="eq" data-n="R5">\[ \mathbf 1\T\operatorname{diag}(\mathbf x)=\mathbf x\T, \qquad \operatorname{diag}(\mathbf u)\mathbf v=\mathbf u\odot\mathbf v \]</div>
+
+<h2 id="network">Network equations</h2>
+
+<div class="eq" data-n="N1">\[ z=\mathbf w\T\mathbf x+b, \qquad a=\phi(z) \qquad\text{(one neuron)} \]</div>
+
+<div class="eq" data-n="N2">\[ z^l=W^la^{l-1}+b^l, \qquad a^l=\phi(z^l) \qquad\text{(one layer)} \]</div>
+
+<div class="eq" data-n="N3">\[ a^0=\mathbf x, \qquad \hat y=a^L \qquad\text{(forward pass endpoints)} \]</div>
+
+<div class="eq" data-n="N4">\[ C=\frac{1}{2m}\sum_{i=1}^{m}\bigl(y^{(i)}-a^{L,(i)}\bigr)^2, \qquad \nabla_aC=a^L-y \]</div>
+
+<h3>Activation functions</h3>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Name</th><th>\(\phi(z)\)</th><th>\(\phi'(z)\)</th><th>Range of \(\phi'\)</th></tr></thead>
+  <tbody>
+    <tr><td>ReLU</td><td>\(\max(0,z)\)</td><td>\(0\) if \(z&lt;0\); \(1\) if \(z&gt;0\)</td><td>\(\{0,1\}\)</td></tr>
+    <tr><td>Leaky ReLU</td><td>\(\max(\alpha z,z)\), \(\alpha\approx0.01\)</td><td>\(\alpha\) if \(z&lt;0\); \(1\) if \(z&gt;0\)</td><td>\(\{\alpha,1\}\)</td></tr>
+    <tr><td>Sigmoid</td><td>\(1/(1+e^{-z})\)</td><td>\(\sigma(z)(1-\sigma(z))\)</td><td>\((0,\,0.25]\)</td></tr>
+    <tr><td>tanh</td><td>\(\tanh z\)</td><td>\(1-\tanh^2z\)</td><td>\((0,\,1]\)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="four-equations">The four equations of backpropagation</h2>
+
+<div class="eq headline" data-n="BP1">\[ \delta^L=\nabla_aC\;\odot\;\phi'(z^L) \]</div>
+<div class="eq headline" data-n="BP2">\[ \delta^l=\Bigl(\bigl(W^{l+1}\bigr)\T\delta^{l+1}\Bigr)\;\odot\;\phi'(z^l) \]</div>
+<div class="eq headline" data-n="BP3">\[ \nabla_{b^l}C=\delta^l \]</div>
+<div class="eq headline" data-n="BP4">\[ \nabla_{W^l}C=\delta^l\bigl(a^{l-1}\bigr)\T \]</div>
+
+<p>Component-wise, for anyone implementing them with explicit loops:</p>
+
+<div class="eq" data-n="7.1">\[ \delta^L_j=\frac{\partial C}{\partial a^L_j}\phi'(z^L_j), \qquad \delta^l_j=\Bigl(\sum_k w^{l+1}_{kj}\delta^{l+1}_k\Bigr)\phi'(z^l_j) \]</div>
+
+<div class="eq" data-n="7.2">\[ \frac{\partial C}{\partial b^l_j}=\delta^l_j, \qquad \frac{\partial C}{\partial w^l_{jk}}=a^{l-1}_k\,\delta^l_j \]</div>
+
+<div class="note pitfall">
+  <span class="label">Index order in the component form of BP2</span>
+  <p>The sum runs over \(w^{l+1}_{kj}\), not \(w^{l+1}_{jk}\). The first index \(k\) ranges over
+  layer \(l+1\) and the second \(j\) is fixed in layer \(l\) — that swap <em>is</em> the transpose in
+  the vectorised form. It is the easiest index in the whole subject to write backwards, and a
+  transposed sum produces a wrong gradient that still runs without error.</p>
+</div>
+
+<h2 id="optimisation">Optimisation</h2>
+
+<div class="eq" data-n="O1">\[ \theta\;\leftarrow\;\theta-\eta\,\nabla_\theta C \]</div>
+
+<div class="eq" data-n="O2">\[ \frac{\partial C}{\partial w_i}\approx\frac{C(w_i+\varepsilon)-C(w_i-\varepsilon)}{2\varepsilon}, \qquad \varepsilon\approx10^{-5} \qquad\text{(gradient check)} \]</div>
+
+<h2 id="algorithm">The training loop</h2>
+
+<ol>
+  <li>Shuffle the training set and cut it into mini-batches.</li>
+  <li>For each mini-batch:
+    <ol style="margin-top:.4rem">
+      <li>Forward pass; store every \(z^l\) and \(a^l\).</li>
+      <li>Evaluate the cost \(C\).</li>
+      <li>BP1 for \(\delta^L\).</li>
+      <li>BP2 backwards for \(\delta^{L-1},\dots,\delta^1\).</li>
+      <li>BP3 and BP4 for all parameter gradients; average over the batch.</li>
+      <li>Update with O1.</li>
+    </ol>
+  </li>
+  <li>Repeat until the cost stops improving.</li>
+</ol>
+
+<h2 id="glossary">Glossary</h2>
+
+<div class="table-wrap">
+<table>
+  <tbody>
+    <tr><td><strong>Activation</strong></td><td>A neuron's output after the non-linearity, \(a=\phi(z)\).</td></tr>
+    <tr><td><strong>Backpropagation</strong></td><td>Computing \(\nabla_\theta C\) by propagating node errors backwards through the network. Reverse-mode automatic differentiation, specialised to neural networks.</td></tr>
+    <tr><td><strong>Batch / mini-batch</strong></td><td>The set of examples averaged over before one parameter update.</td></tr>
+    <tr><td><strong>Cost (loss) function</strong></td><td>The scalar measure of wrongness that training minimises.</td></tr>
+    <tr><td><strong>Dying ReLU</strong></td><td>A neuron whose pre-activation is negative on all inputs, so every gradient through it is zero and it can never recover.</td></tr>
+    <tr><td><strong>Epoch</strong></td><td>One complete pass over the training set.</td></tr>
+    <tr><td><strong>Forward propagation</strong></td><td>Evaluating the network from input to prediction.</td></tr>
+    <tr><td><strong>Gradient</strong></td><td>The vector of partial derivatives of a scalar function; points toward steepest ascent.</td></tr>
+    <tr><td><strong>Hadamard product</strong></td><td>Element-wise multiplication of two equal-length vectors, written \(\odot\).</td></tr>
+    <tr><td><strong>Hyperparameter</strong></td><td>A value set by the practitioner rather than learned — learning rate, batch size, layer widths.</td></tr>
+    <tr><td><strong>Jacobian</strong></td><td>The matrix of first partials of a vector-valued function; rows index outputs, columns index inputs.</td></tr>
+    <tr><td><strong>Learning rate \(\eta\)</strong></td><td>Step size along the negative gradient.</td></tr>
+    <tr><td><strong>Node error \(\delta^l_j\)</strong></td><td>\(\partial C/\partial z^l_j\): how much the cost responds to this neuron's pre-activation.</td></tr>
+    <tr><td><strong>Pre-activation \(z\)</strong></td><td>The weighted sum plus bias, before the activation function.</td></tr>
+    <tr><td><strong>Scalar expansion</strong></td><td>Broadcasting a scalar to a vector so an element-wise operation is defined.</td></tr>
+    <tr><td><strong>Unrolling</strong></td><td>Flattening all weight matrices and bias vectors into one long vector \(\theta\).</td></tr>
+    <tr><td><strong>Vanishing gradient</strong></td><td>Error shrinking toward zero as BP2 is applied through many layers, stalling learning in early layers.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h2 id="reading">Further reading</h2>
+
+<p><strong>Michael Nielsen, <em>Neural Networks and Deep Learning</em></strong> —
+<a href="http://neuralnetworksanddeeplearning.com/">neuralnetworksanddeeplearning.com</a>. Free
+online. Chapter 2 is the origin of the four-equation framing used here, with fuller proofs than this
+guide gives.</p>
+
+<p><strong>Terence Parr and Jeremy Howard, <em>The Matrix Calculus You Need For Deep Learning</em></strong> —
+<a href="https://explained.ai/matrix-calculus/">explained.ai/matrix-calculus</a>. The source for
+chapter 2's treatment of element-wise operations, scalar expansion and the derivative of a sum.
+Read it if the Jacobian machinery is the part that feels shaky.</p>
+
+<p><strong>Rumelhart, Hinton and Williams (1986), "Learning representations by back-propagating
+errors", <em>Nature</em> 323.</strong> The paper that made the algorithm widely known. Short, and
+readable once this material is in place.</p>
+
+<p><strong>Goodfellow, Bengio and Courville, <em>Deep Learning</em></strong> —
+<a href="https://www.deeplearningbook.org/">deeplearningbook.org</a>. Section 6.5 treats
+backpropagation as computational-graph differentiation, which generalises past feed-forward networks.</p>
+
+<p><strong>3Blue1Brown, neural network series.</strong> Visual intuition for gradient descent and
+backpropagation. Complements the algebra here rather than replacing it.</p>
+
+<div class="note key">
+  <span class="label">The whole guide in four lines</span>
+  <p>A network is a composition of functions. Its cost is a scalar function of its parameters.
+  Backpropagation computes every partial derivative of that cost in one backward sweep. Gradient
+  descent walks against them until the cost stops falling.</p>
+</div>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="06-backpropagation.html"><span class="dir">&larr; Previous</span><span class="title">6. Backpropagation</span></a>
+  <a class="next" href="../index.html"><span class="dir">Back to &rarr;</span><span class="title">Contents</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

@@ -1,0 +1,639 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>2. The matrix calculus toolkit — Mathematics of Neural Networks</title>
+<meta name="description" content="Gradients, Jacobians, the Jacobian chain rule, and the derivatives of the element-wise operations a neuron is built from.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">2. The matrix calculus toolkit</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html" aria-current="page"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 2</p>
+  <h1>The matrix calculus toolkit</h1>
+  <p class="standfirst">Five results, and every derivative in the rest of this guide is one of them or
+  a product of them. Gradients, Jacobians, the chain rule in matrix form, and the derivatives of the
+  element-wise operations a neuron is assembled from.</p>
+</header>
+
+<!-- Simplified Summary Card -->
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; The Big Picture</span>
+  <h3>The Calculus Toolkit: Three Everyday Tools</h3>
+  <ul>
+    <li><strong>The Gradient (\(\nabla f\)):</strong> A 3D compass needle. If you stand on a hilly landscape, the gradient points straight up the steepest slope. Its length tells you how steep the hill is. Moving in the opposite direction (\(-\nabla f\)) leads down to the valley floor.</li>
+    <li><strong>The Jacobian (\(J\)):</strong> A local elastic stretcher. When a function takes in multiple numbers and outputs multiple numbers, it stretches and skews space. The Jacobian matrix measures exactly how a tiny circle of input gets deformed into an ellipse.</li>
+    <li><strong>The Chain Rule:</strong> Mechanical gears in series. If gear A turns gear B at 3&times;, and gear B turns gear C at 2&times;, turning gear A spins gear C at \(3 \times 2 = 6\times\). Derivatives multiply link-by-link down the chain.</li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. The Compass</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="40" cy="30" r="22" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <polygon points="40,12 45,30 35,30" fill="var(--rose)"/>
+      <polygon points="40,48 45,30 35,30" fill="var(--emerald)"/>
+      <circle cx="40" cy="30" r="3" fill="var(--ink)"/>
+    </svg>
+    <h5>Gradient &nabla;f</h5>
+    <p>Compass needle pointing toward steepest ascent uphill; opposite direction points downhill.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Rubber Stretcher</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <rect x="15" y="10" width="50" height="40" rx="4" fill="none" stroke="var(--rule-firm)" stroke-width="1" stroke-dasharray="2 2"/>
+      <ellipse cx="40" cy="30" rx="24" ry="12" transform="rotate(-20 40 30)" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+    </svg>
+    <h5>Jacobian Matrix J</h5>
+    <p>Measures how multi-input functions warp, twist, and stretch little patches of coordinate space.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Linked Gears</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="28" cy="30" r="14" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+      <circle cx="52" cy="30" r="10" fill="var(--surface-2)" stroke="var(--emerald)" stroke-width="2"/>
+      <circle cx="28" cy="30" r="3" fill="var(--accent)"/>
+      <circle cx="52" cy="30" r="3" fill="var(--emerald)"/>
+    </svg>
+    <h5>The Chain Rule</h5>
+    <p>Sensitivities multiply down transmission linkages; intermediate ratios cleanly cancel out!</p>
+  </div>
+</div>
+
+<h2 id="gradients">Gradients: vector in, scalar out</h2>
+
+<p>A gradient is how we package the partial derivatives of a function that eats a vector and returns
+a single number, \(f:\mathbb R^n\to\mathbb R\).</p>
+
+<!-- Visual Diagram: The Mountain & Gradient Vector -->
+<div class="diagram-box">
+  <svg viewBox="0 0 700 200" width="100%" role="img" aria-label="3D topographic mountain showing contour lines, hiker, gradient vector pointing uphill and negative gradient pointing downhill">
+    <!-- Mountain Contours -->
+    <ellipse cx="350" cy="115" rx="300" ry="75" fill="none" stroke="var(--rule)" stroke-width="1.5"/>
+    <ellipse cx="350" cy="110" rx="230" ry="58" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <ellipse cx="350" cy="105" rx="160" ry="42" fill="none" stroke="var(--rule-firm)" stroke-width="1.8"/>
+    <ellipse cx="350" cy="100" rx="90" ry="26" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+    <ellipse cx="350" cy="95" rx="30" ry="10" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="2"/>
+    <text x="350" y="80" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="Inter, sans-serif">Peak (Maximum f)</text>
+
+    <!-- Hiker position -->
+    <circle cx="270" cy="125" r="7" fill="var(--ink)"/>
+    <text x="245" y="145" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Hiker (x, y)</text>
+
+    <!-- Gradient Vector (Uphill) -->
+    <line x1="270" y1="125" x2="330" y2="105" stroke="var(--accent)" stroke-width="3"/>
+    <polygon points="335,103 323,101 328,109" fill="var(--accent)"/>
+    <text x="325" y="93" text-anchor="middle" font-size="12" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">&nabla;f (Steepest Ascent)</text>
+
+    <!-- Negative Gradient Vector (Downhill) -->
+    <line x1="270" y1="125" x2="210" y2="145" stroke="var(--emerald)" stroke-width="2.5"/>
+    <polygon points="205,147 217,149 212,141" fill="var(--emerald)"/>
+    <text x="180" y="165" text-anchor="middle" font-size="12" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">-&nabla;f (Descent)</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 2.1:</b> The geometry of the gradient on a topographic surface. At any coordinate \((x,y)\), \(\nabla f\) points in the direction of steepest ascent across the contour lines, while \(-\nabla f\) points straight downhill.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: The Hiker in Dense Fog</span>
+  <p>Imagine standing on a mountain in pitch-black fog with zero visibility. You cannot see where the summit is, nor can you see the valley floor.</p>
+  <p>However, through the soles of your boots, you can feel the local tilt of the soil right where you stand. The direction pointing directly uphill against the tilt is \(\nabla f\). The angle of the tilt is the gradient magnitude \(\|\nabla f\|\).</p>
+  <p>If your goal is to descend safely into the valley, you don't need a global map. You simply take a step in the direction opposite to what your boots feel: \(-\nabla f\). That is the entire philosophy of gradient descent.</p>
+</div>
+
+<p>Take a concrete one:</p>
+
+<div class="eq" data-n="2.1">\[ f(x,y)=x^2+\cos y \]</div>
+
+<p>Two input variables, one output number. Feeding in \(x=2,\;y=0\) gives \(4+1=5\): a vector in
+\(\mathbb R^2\) has become a scalar in \(\mathbb R^1\). The partial derivatives are ordinary
+single-variable derivatives taken one variable at a time, everything else held fixed:</p>
+
+<div class="eq" data-n="2.2">\[ \frac{\partial f}{\partial x}=2x, \qquad \frac{\partial f}{\partial y}=-\sin y \]</div>
+
+<p>Stack them and you have the gradient:</p>
+
+<div class="eq headline" data-n="2.3">\[ \nabla f(x,y)=\begin{bmatrix}\partial f/\partial x\\[2pt]\partial f/\partial y\end{bmatrix}=\begin{bmatrix}2x\\-\sin y\end{bmatrix} \]</div>
+
+<p>The symbol \(\nabla\) is a nabla, not a delta. With a thousand input variables the gradient would
+have a thousand entries: one per input, always. Its length is set by the input, never by the output,
+because the output is a single number.</p>
+
+<div class="note def">
+  <span class="label">Definition</span>
+  <p>The <strong>gradient</strong> of \(f:\mathbb R^n\to\mathbb R\) is the \(n\times1\) vector of its
+  first partial derivatives. Read it as a sensitivity profile: entry \(i\) says how fast \(f\) moves
+  when input \(i\) moves, at this particular point.</p>
+</div>
+
+<!-- Interactive 2D Vector Field & Contour Visualizer -->
+<div class="panel">
+  <div class="panel-head">
+    <h4>Interactive 2D Contour &amp; Gradient Vector Field Explorer</h4>
+    <span class="hint">Click or drag anywhere on the landscape to evaluate &nabla;f live</span>
+  </div>
+  <div class="panel-body">
+    <div class="canvas-wrap">
+      <canvas id="ch2-contour-canvas"></canvas>
+      <span class="canvas-badge">Interactive 2D Field</span>
+    </div>
+    <div id="ch2-contour-readout"></div>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h4>Formula Explorer</h4>
+    <span class="hint">\(f(x,y)=x^2+\cos y\)</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>x <input id="gx" type="range" min="-3" max="3" step="0.05" value="2"><output id="gx-val">2.00</output></label>
+      <label>y <input id="gy" type="range" min="-3.14" max="3.14" step="0.05" value="0"><output id="gy-val">0.00</output></label>
+    </div>
+    <div id="grad-out"></div>
+  </div>
+</div>
+
+<h2 id="jacobians">Jacobians: vector in, vector out</h2>
+
+<p>Now let the output be a vector too, \(f:\mathbb R^n\to\mathbb R^m\). There are more partial
+derivatives to keep track of — \(m\) output components, each differentiated with respect to \(n\)
+inputs, so \(mn\) of them — and they go into a matrix.</p>
+
+<div class="eq" data-n="2.4">\[ f(x,y)=\begin{bmatrix}2x+y^3\\ e^{y}-13x\end{bmatrix} \]</div>
+
+<p>Split it into scalar component functions, \(f_1=2x+y^3\) and \(f_2=e^y-13x\), and differentiate
+each with respect to each variable. Four derivatives: \(2\), \(3y^2\), \(-13\), \(e^y\). Arrange
+them:</p>
+
+<div class="eq headline" data-n="2.5">\[ J_f=\begin{bmatrix}\dfrac{\partial f_1}{\partial x}&\dfrac{\partial f_1}{\partial y}\\[10pt]\dfrac{\partial f_2}{\partial x}&\dfrac{\partial f_2}{\partial y}\end{bmatrix}=\begin{bmatrix}2&3y^2\\-13&e^{y}\end{bmatrix} \]</div>
+
+<!-- Visual Diagram: What a Jacobian Does to Space -->
+<div class="diagram-box">
+  <svg viewBox="0 0 680 180" width="100%" role="img" aria-label="Geometric action of a Jacobian: mapping an infinitesimal circular patch of space into an ellipse">
+    <!-- Left: Original input space -->
+    <text x="160" y="25" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">Input Domain &reals;&sup2; (Circle)</text>
+    <rect x="100" y="45" width="120" height="120" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+    <circle cx="160" cy="105" r="45" fill="none" stroke="var(--ink-muted)" stroke-width="1.5"/>
+    <line x1="160" y1="105" x2="205" y2="105" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="185" y="122" font-size="11" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">e₁</text>
+    <line x1="160" y1="105" x2="160" y2="60" stroke="var(--emerald)" stroke-width="2.5"/>
+    <text x="148" y="80" font-size="11" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">e₂</text>
+
+    <!-- Mapping arrow -->
+    <path d="M 270 105 L 370 105" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrow)"/>
+    <text x="320" y="95" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">f(x, y)</text>
+    <text x="320" y="125" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="Inter, sans-serif">Linearized by J_f</text>
+
+    <!-- Right: Transformed output space -->
+    <text x="520" y="25" text-anchor="middle" font-size="12" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">Output Range &reals;&sup2; (Deformed Ellipse)</text>
+    <polygon points="460,145 480,55 580,65 560,155" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+    <ellipse cx="520" cy="105" rx="55" ry="25" transform="rotate(-25 520 105)" fill="none" stroke="var(--accent)" stroke-width="2"/>
+    <line x1="520" y1="105" x2="565" y2="85" stroke="var(--accent)" stroke-width="2.5"/>
+    <text x="548" y="80" font-size="11" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">J e₁</text>
+    <line x1="520" y1="105" x2="505" y2="70" stroke="var(--emerald)" stroke-width="2.5"/>
+    <text x="490" y="85" font-size="11" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">J e₂</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 2.2:</b> The geometric meaning of the Jacobian. A non-linear transformation locally stretches, shears, and rotates an infinitesimal circle into an ellipse. The Jacobian matrix contains the transformed coordinate axes.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: The Stretched Rubber Sheet</span>
+  <p>Imagine drawing a perfect circular grid on a sheet of flexible silicone rubber. Now grab the corners and pull: stretch the x-axis, twist the edges, and shear the corners.</p>
+  <ul>
+    <li>The circle deforms into a tilted, stretched <strong>ellipse</strong>.</li>
+    <li>The <strong>Jacobian matrix</strong> is the exact measurement of that distortion: column 1 says where the horizontal axis landed, and column 2 says where the vertical axis landed.</li>
+    <li>The <strong>determinant \(\det(J)\)</strong> measures area scaling: if \(\det(J) = 3\), that tiny patch of rubber expanded by 3&times;. If \(\det(J) = 0\), the patch collapsed completely into a flat line (information was destroyed).</li>
+  </ul>
+</div>
+
+<!-- Interactive Jacobian Space Deformer Canvas -->
+<div class="panel">
+  <div class="panel-head">
+    <h4>Interactive Jacobian Space Deformer</h4>
+    <span class="hint">Adjust matrix entries to watch 2D space stretch, shear, and rotate live</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>J₁₁ (x &rarr; x): <output id="jac-a-val">1.2</output>
+        <input id="jac-a" type="range" min="-2" max="2" step="0.1" value="1.2">
+      </label>
+      <label>J₁₂ (y &rarr; x): <output id="jac-b-val">0.5</output>
+        <input id="jac-b" type="range" min="-2" max="2" step="0.1" value="0.5">
+      </label>
+      <label>J₂₁ (x &rarr; y): <output id="jac-c-val">-0.3</output>
+        <input id="jac-c" type="range" min="-2" max="2" step="0.1" value="-0.3">
+      </label>
+      <label>J₂₂ (y &rarr; y): <output id="jac-d-val">1.0</output>
+        <input id="jac-d" type="range" min="-2" max="2" step="0.1" value="1.0">
+      </label>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="jacobian-canvas"></canvas>
+      <span class="canvas-badge">Space Deformation</span>
+    </div>
+    <div id="jac-out"></div>
+  </div>
+</div>
+
+<div class="note shape">
+  <span class="label">Shape check</span>
+  <p><strong>Rows are output components. Columns are input variables.</strong> A Jacobian is
+  \(m\times n\) — outputs tall, inputs wide. Add an output and it grows downward; add an input and
+  it grows sideways.</p>
+</div>
+
+<p>Each row is the gradient of one component function, laid on its side. Row \(i\) is
+\((\nabla f_i)\T\). A gradient is therefore a Jacobian with exactly one row, transposed — the two
+objects are the same idea at different output dimensions, which is why one set of chain-rule rules
+covers both.</p>
+
+<div class="note intuition">
+  <span class="label">Look for the zeros</span>
+  <p>In \(J_f\) above, \(\partial f_2/\partial x=-13\) is non-zero because \(x\) appears in
+  \(f_2\). Had it not appeared, that entry would be zero. Zeros in a Jacobian are structural
+  information: they say that this input has no route to that output.</p>
+  <p>This matters more than it looks. When \(f\) is applied <em>element-wise</em> — output \(i\)
+  depends on input \(i\) and nothing else — every off-diagonal entry vanishes and the Jacobian is
+  diagonal. Activation functions are element-wise, so this is the common case in a neural network,
+  and it is what later lets whole matrix products collapse into cheap element-wise multiplications.</p>
+</div>
+
+<h2 id="scalar-chain-rule">The scalar chain rule, rewritten as an algorithm</h2>
+
+<!-- Visual Diagram: The Chain Rule Gear Train -->
+<div class="diagram-box">
+  <svg viewBox="0 0 680 150" width="100%" role="img" aria-label="Mechanical gear train showing interlocking gears multiplying angular velocities">
+    <!-- Gear 1 -->
+    <circle cx="150" cy="75" r="45" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2.5"/>
+    <circle cx="150" cy="75" r="8" fill="var(--accent)"/>
+    <text x="150" y="80" text-anchor="middle" font-size="11" font-weight="700" fill="var(--surface)" font-family="Inter, sans-serif">x</text>
+    <text x="150" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Input Gear (x)</text>
+
+    <!-- Gear 2 -->
+    <circle cx="280" cy="75" r="30" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="2"/>
+    <circle cx="280" cy="75" r="6" fill="var(--rule-firm)"/>
+    <text x="280" y="138" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Intermediate (g)</text>
+    <text x="215" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">&times; &part;g/&part;x</text>
+
+    <!-- Gear 3 -->
+    <circle cx="430" cy="75" r="60" fill="var(--surface-2)" stroke="var(--emerald)" stroke-width="2.5"/>
+    <circle cx="430" cy="75" r="10" fill="var(--emerald)"/>
+    <text x="430" y="80" text-anchor="middle" font-size="11" font-weight="700" fill="var(--surface)" font-family="Inter, sans-serif">f</text>
+    <text x="430" y="148" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="Inter, sans-serif">Output Gear (f)</text>
+    <text x="350" y="65" text-anchor="middle" font-size="11" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">&times; &part;f/&part;g</text>
+
+    <!-- Master Equation -->
+    <rect x="520" y="45" width="140" height="60" rx="8" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.5"/>
+    <text x="590" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent-ink)" font-family="Inter, sans-serif">Total Velocity Ratio</text>
+    <text x="590" y="90" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">&part;f/&part;x = &part;f/&part;g &middot; &part;g/&part;x</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 2.3:</b> The chain rule as a mechanical gear train. Each intermediate variable acts as a transfer gear. The overall rate of change from input to output is simply the product of each gear's individual gear ratio.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: Interlocking Mechanical Gears</span>
+  <p>Think of a 10-speed bicycle drivetrain:</p>
+  <ul>
+    <li>Turning your pedals by 1 radian turns the front chainring by 1 radian.</li>
+    <li>The chainring turns the rear wheel cassette at a ratio of 3:1 (\(\partial g/\partial x = 3\)).</li>
+    <li>The rear wheel circumference turns the pavement distance at a ratio of 2.1 meters per rotation (\(\partial f/\partial g = 2.1\)).</li>
+    <li>How much pavement do you cover per pedal stroke? Multiply the gear ratios: \(3 \times 2.1 = 6.3\) meters!</li>
+  </ul>
+  <p>In calculus, the chain rule is doing exactly the same mechanical arithmetic: multiplying sensitivities link by link down the transmission line.</p>
+</div>
+
+<!-- Interactive Mechanical Gear Train Simulator -->
+<div class="panel">
+  <div class="panel-head">
+    <h4>Interactive Mechanical Gear Train Simulator</h4>
+    <span class="hint">Physical Proof: Why intermediate variables cancel out in the Chain Rule</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls" style="grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));">
+      <label>Gear X Teeth: <b id="gear-n1-val">12</b><input id="gear-n1" type="range" min="8" max="24" step="2" value="12"></label>
+      <label>Gear Y Teeth: <b id="gear-n2-val">24</b><input id="gear-n2" type="range" min="12" max="36" step="2" value="24"></label>
+      <label>Gear Z Teeth: <b id="gear-n3-val">16</b><input id="gear-n3" type="range" min="8" max="32" step="2" value="16"></label>
+      <label>Drive Angle: <input id="gear-angle" type="range" min="0" max="6.28" step="0.05" value="0"></label>
+    </div>
+    <div style="margin-top:0.75rem">
+      <button class="btn primary" id="gear-play-btn">Spin Gears</button>
+    </div>
+    <div class="canvas-wrap" style="margin-top:0.75rem">
+      <canvas id="gears-canvas" width="580" height="200"></canvas>
+    </div>
+    <div id="gear-readout"></div>
+  </div>
+</div>
+
+<p>You already know how to differentiate \(\sin(x^2)\): derivative of the inside times derivative of
+the outside, \(2x\cos(x^2)\). That shortcut does not generalise well. A slower, mechanical version
+does.</p>
+
+<ol class="derivation">
+  <li>
+    <strong>Name the inner function.</strong> Let \(g=x^2\), so the whole thing is \(f=\sin g\).
+    <span class="why">Every nested piece gets its own intermediate variable.</span>
+  </li>
+  <li>
+    <strong>Differentiate each link separately.</strong>
+    <div class="eq">\[ \frac{\partial g}{\partial x}=2x, \qquad \frac{\partial f}{\partial g}=\cos g \]</div>
+  </li>
+  <li>
+    <strong>Multiply along the chain.</strong>
+    <div class="eq">\[ \frac{\partial f}{\partial x}=\frac{\partial f}{\partial g}\,\frac{\partial g}{\partial x}=\cos g\cdot 2x \]</div>
+    <span class="why">The intermediate cancels formally, which is the mnemonic the notation is built for.</span>
+  </li>
+  <li>
+    <strong>Substitute the intermediates back.</strong>
+    <div class="eq">\[ \frac{\partial f}{\partial x}=2x\cos(x^2) \]</div>
+  </li>
+</ol>
+
+<p>Same answer, more steps. The point is that this version does not care how deeply nested the
+function is. Given \(h(g(f(c(a(x)))))\), name every inner function, differentiate each link, multiply
+the lot, substitute back. A deep neural network is exactly that kind of nest, which is why the
+mechanical form is the one worth internalising.</p>
+
+<h2 id="jacobian-chain-rule">The Jacobian chain rule</h2>
+
+<!-- Visual Formula Decoder for Jacobian Chain Rule -->
+<div class="visual-decoder">
+  <span class="decoder-title">Visual Formula Decoder &middot; Matrix Composition</span>
+  <div class="formula-hero">
+    <span style="color:var(--accent)">\(J_{f \circ g}(\mathbf{x})\)</span> =
+    <span style="color:var(--rose)">\(J_f(\mathbf{g}(\mathbf{x}))\)</span> &middot;
+    <span style="color:var(--emerald)">\(J_g(\mathbf{x})\)</span>
+  </div>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">\(J_{f \circ g}\) (Total Distortion)</span>
+      <span class="symbol-desc">Combined Jacobian</span>
+      <p>How the entire pipeline transforms an input perturbation \(\mathrm{d}\mathbf{x}\) into final output change \(\mathrm{d}\mathbf{y}\).</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">\(J_f(\mathbf{g}(\mathbf{x}))\) (Outer Link)</span>
+      <span class="symbol-desc">Evaluated at \(\mathbf{g}(\mathbf{x})\)</span>
+      <p>The downstream function. Appears on the left because matrices multiply on the left of column vectors.</p>
+    </div>
+    <div class="decoder-card emerald">
+      <span class="term" style="color:var(--emerald)">\(J_g(\mathbf{x})\) (Inner Link)</span>
+      <span class="symbol-desc">Evaluated at \(\mathbf{x}\)</span>
+      <p>The upstream function that processes the raw input first. Acts directly on the input vector.</p>
+    </div>
+  </div>
+</div>
+
+<p>Now run the same procedure where the links are vector-valued. The multiplication becomes matrix
+multiplication.</p>
+
+<div class="eq headline" data-n="2.6">\[ \frac{\partial f}{\partial \mathbf x}=\frac{\partial f}{\partial \mathbf g}\;\frac{\partial \mathbf g}{\partial \mathbf x} \qquad\text{equivalently}\qquad J_{f\circ g}(\mathbf x)=J_f(\mathbf g(\mathbf x))\,J_g(\mathbf x) \]</div>
+
+<div class="note pitfall">
+  <span class="label">Order matters</span>
+  <p>Matrix multiplication does not commute: \(AB \ne BA\). The <strong>outer</strong> function's
+  Jacobian goes on the left, the inner one on the right, and the inner-most factor ends up
+  furthest right. Getting this backwards produces a matrix of the wrong shape, which is at least a
+  loud failure — but in square cases it produces plausible nonsense instead.</p>
+</div>
+
+<h3>Worked example</h3>
+
+<div class="eq" data-n="2.7">\[ f(x,y)=\begin{bmatrix}\sin(x^2+y)\\ \ln(y^3)\end{bmatrix} \]</div>
+
+<ol class="derivation">
+  <li>
+    <strong>Pull out the inner vector function.</strong>
+    <div class="eq">\[ \mathbf g(x,y)=\begin{bmatrix}x^2+y\\ y^3\end{bmatrix}, \qquad f(\mathbf g)=\begin{bmatrix}\sin g_1\\ \ln g_2\end{bmatrix} \]</div>
+    <span class="why">Substituting \(\mathbf g\) back into \(f\) must reproduce the original.</span>
+  </li>
+  <li>
+    <strong>Jacobian of the inner function</strong>, with respect to \(x\) and \(y\):
+    <div class="eq">\[ \frac{\partial \mathbf g}{\partial \mathbf x}=\begin{bmatrix}2x&1\\ 0&3y^2\end{bmatrix} \]</div>
+    <span class="why">The zero is real: \(g_2=y^3\) contains no \(x\).</span>
+  </li>
+  <li>
+    <strong>Jacobian of the outer function</strong>, now with respect to \(g_1\) and \(g_2\):
+    <div class="eq">\[ \frac{\partial f}{\partial \mathbf g}=\begin{bmatrix}\cos g_1&0\\ 0&1/g_2\end{bmatrix} \]</div>
+    <span class="why">Diagonal, because the outer function is element-wise: \(g_1\) touches only the first output.</span>
+  </li>
+  <li>
+    <strong>Multiply, outer on the left.</strong>
+    <div class="eq">\[ \frac{\partial f}{\partial \mathbf x}=\begin{bmatrix}\cos g_1&0\\ 0&1/g_2\end{bmatrix}\begin{bmatrix}2x&1\\ 0&3y^2\end{bmatrix}=\begin{bmatrix}2x\cos g_1&\cos g_1\\ 0&3y^2/g_2\end{bmatrix} \]</div>
+  </li>
+  <li>
+    <strong>Substitute back and simplify.</strong>
+    <div class="eq">\[ \frac{\partial f}{\partial \mathbf x}=\begin{bmatrix}2x\cos(x^2+y)&\cos(x^2+y)\\[4pt] 0&3/y\end{bmatrix} \]</div>
+    <span class="why">\(3y^2/y^3 = 3/y\).</span>
+  </li>
+</ol>
+
+<p>Sanity-check the zero before moving on. It sits in row 2, column 1 — the sensitivity of the second
+output to \(x\). The second output is \(\ln(y^3)\), which has no \(x\) in it. Zero is right.</p>
+
+<div class="note beyond">
+  <span class="label">When a component has no inner function</span>
+  <p>Not every component of a vector function needs the chain rule. If \(f\) were
+  \([\sin(x^2+y),\;\ln(y^3),\;xy^3]\), the third component has no inner function to peel off.</p>
+  <p>Give it the identity as its intermediate: set \(g_3 = xy^3\) so that \(\partial f_3/\partial g_3=1\).
+  The 1 sits harmlessly in the outer Jacobian and the machinery runs unchanged. This comes up
+  constantly, since real compositions are rarely uniformly nested.</p>
+</div>
+
+<h2 id="element-wise">Element-wise binary operations</h2>
+
+<p>A neuron is built from three operations, and two of them are element-wise. Their derivatives are
+worth having ready-made.</p>
+
+<div class="note def">
+  <span class="label">Definition</span>
+  <p>A <strong>binary element-wise operation</strong> takes two vectors of the same length and
+  produces a third, where output component \(i\) depends only on input components \(i\):</p>
+  <div class="eq">\[ F(\mathbf v,\mathbf w)=\begin{bmatrix}f_1(\mathbf v)\;\bigcirc\;g_1(\mathbf w)\\ \vdots\\ f_n(\mathbf v)\;\bigcirc\;g_n(\mathbf w)\end{bmatrix} \]</div>
+  <p>The operator \(\bigcirc\) is what must be element-wise; the inner \(f_i,g_i\) are there for
+  generality and are usually the identity.</p>
+</div>
+
+<p>The <strong>Hadamard product</strong> \(\mathbf v\odot\mathbf w\) is the case where \(\bigcirc\)
+is multiplication and the inner functions do nothing: component-wise multiply, \((v\odot w)_i=v_iw_i\).
+It shows up everywhere in backpropagation.</p>
+
+<p>Because there are two input vectors, there are two Jacobians. Both are diagonal, for the reason
+established above — component \(i\) of the output cannot see component \(j\ne i\) of anything:</p>
+
+<div class="eq headline" data-n="2.8">\[ \frac{\partial(\mathbf v\odot\mathbf w)}{\partial \mathbf v}=\operatorname{diag}(\mathbf w), \qquad \frac{\partial(\mathbf v\odot\mathbf w)}{\partial \mathbf w}=\operatorname{diag}(\mathbf v) \]</div>
+
+<p>The scalar intuition survives intact: differentiating \(vw\) with respect to \(v\) gives \(w\).
+The only new content is that the result is spread down a diagonal, with structural zeros everywhere
+else. And because all the information lives on the diagonal, an \(n\times n\) diagonal matrix can be
+stored and applied as a length-\(n\) vector — an element-wise multiply instead of a matrix product.</p>
+
+<h2 id="scalar-expansion">Scalar expansion (broadcasting)</h2>
+
+<p>What is \(2\mathbf v\)? Formally a scalar has no business multiplying a vector element by element,
+so what actually happens — in the mathematics and in every array library — is that the scalar is
+<strong>expanded</strong> into a vector of the right length first, then an element-wise operation
+runs:</p>
+
+<div class="eq" data-n="2.9">\[ \mathbf v \odot (\mathbf 1 z) \qquad\text{where}\qquad \mathbf 1 z = \begin{bmatrix}z\\ \vdots\\ z\end{bmatrix} \]</div>
+
+<p>Two derivatives come out of this, and the second one is the interesting one.</p>
+
+<p>With respect to \(\mathbf v\), it is the Hadamard result with \(\mathbf w=\mathbf 1z\):</p>
+
+<div class="eq" data-n="2.10">\[ \frac{\partial(\mathbf v z)}{\partial \mathbf v}=\operatorname{diag}(z,\dots,z)=zI \]</div>
+
+<p>With respect to \(z\) it is different in kind. \(z\) is a single number with no index, so there is
+nothing to vary sideways — the derivative can only run down the output components. The map is
+\(\mathbb R\to\mathbb R^n\), so its Jacobian is a single column:</p>
+
+<div class="eq" data-n="2.11">\[ \frac{\partial(\mathbf v z)}{\partial z}=\mathbf v, \qquad \frac{\partial(\mathbf v + z)}{\partial z}=\mathbf 1 \]</div>
+
+<p>Multiplication leaves \(\mathbf v\) behind; addition leaves ones; subtraction would leave
+\(-\mathbf 1\). All exactly the scalar rules, applied once per component.</p>
+
+<h2 id="sum">The derivative of a sum</h2>
+
+<p>The last piece. Summing a vector's components is a map \(\mathbb R^n\to\mathbb R\), so its
+derivative is a gradient:</p>
+
+<div class="eq" data-n="2.12">\[ s(\mathbf v)=\sum_{i=1}^{n}v_i \]</div>
+
+<p>Work out one entry. Differentiating with respect to \(v_1\), every term in the sum is a constant
+except \(v_1\) itself, which contributes 1. So the whole sum differentiates to \(1+0+0+\cdots=1\).
+Nothing distinguishes \(v_1\), so every entry is 1:</p>
+
+<div class="eq headline" data-n="2.13">\[ \frac{\partial s}{\partial \mathbf v}=\mathbf 1\T=\begin{bmatrix}1&1&\cdots&1\end{bmatrix} \]</div>
+
+<p>If each component is scaled before summing, \(s(\mathbf v)=\sum_i zv_i\), the same argument gives
+\(z\mathbf 1\T\). The scaling factor simply rides along.</p>
+
+<div class="note key">
+  <span class="label">The identity that does the work in chapter 4</span>
+  <div class="eq">\[ \mathbf 1\T\operatorname{diag}(\mathbf x)=\mathbf x\T \]</div>
+  <p>A row of ones times a diagonal matrix reads off the diagonal as a row vector. Since a dot
+  product is a Hadamard product followed by a sum, this single line is what turns
+  \(\partial(\mathbf w\T\mathbf x)/\partial\mathbf w\) into \(\mathbf x\T\) — the result that makes
+  the input vector appear inside every weight gradient in the whole guide.</p>
+</div>
+
+<h2 id="toolkit">The toolkit, collected</h2>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Operation</th><th>Derivative</th><th>Shape</th></tr></thead>
+  <tbody>
+    <tr><td>\(f:\mathbb R^n\to\mathbb R\)</td><td>\(\nabla f\)</td><td>\(n\times1\)</td></tr>
+    <tr><td>\(f:\mathbb R^n\to\mathbb R^m\)</td><td>\(J_f\)</td><td>\(m\times n\)</td></tr>
+    <tr><td>composition \(f\circ g\)</td><td>\(J_f\,J_g\), outer on the left</td><td>chains through</td></tr>
+    <tr><td>\(\mathbf v\odot\mathbf w\) w.r.t. \(\mathbf v\)</td><td>\(\operatorname{diag}(\mathbf w)\)</td><td>\(n\times n\), diagonal</td></tr>
+    <tr><td>\(\mathbf v z\) w.r.t. \(z\)</td><td>\(\mathbf v\)</td><td>\(n\times1\)</td></tr>
+    <tr><td>\(\mathbf v + z\) w.r.t. \(z\)</td><td>\(\mathbf 1\)</td><td>\(n\times1\)</td></tr>
+    <tr><td>\(\sum_i v_i\) w.r.t. \(\mathbf v\)</td><td>\(\mathbf 1\T\)</td><td>\(1\times n\)</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>That is the entire calculus prerequisite. Everything from here on is these seven lines, composed.</p>
+
+<h2 id="self-check">Self-check</h2>
+
+<details class="check">
+  <summary>\(f:\mathbb R^4\to\mathbb R^7\). What shape is its Jacobian, and what shape is the Jacobian of \(f\circ g\) where \(g:\mathbb R^2\to\mathbb R^4\)?</summary>
+  <div class="answer">
+    <p>\(J_f\) is \(7\times4\) — outputs tall, inputs wide. \(J_g\) is \(4\times2\). The product
+    \(J_fJ_g\) is \(7\times4\) times \(4\times2\), so \(7\times2\): the inner 4s cancel, exactly as
+    the composition \(\mathbb R^2\to\mathbb R^7\) demands. The shapes only line up in this order,
+    which is a useful way to remember that outer goes left.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why is the Jacobian of an activation function diagonal?</summary>
+  <div class="answer">
+    <p>Because activation functions are applied element-wise: \(a_i=\phi(z_i)\) depends on \(z_i\)
+    and on nothing else. So \(\partial a_i/\partial z_j=0\) whenever \(i\ne j\), leaving only
+    \(\phi'(z_i)\) down the diagonal.</p>
+    <p>The practical consequence is large. Multiplying by \(\operatorname{diag}(\phi'(z))\) is the
+    same as taking a Hadamard product with the vector \(\phi'(z)\) — \(O(n)\) work instead of
+    \(O(n^2)\), and no \(n\times n\) matrix ever stored. This is why the backpropagation equations in
+    chapter 6 are written with \(\odot\).</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Compute \(\mathbf 1\T\operatorname{diag}(3,-1,4)\).</summary>
+  <div class="answer">
+    <p>\(\begin{bmatrix}3&-1&4\end{bmatrix}\). Row \(i\) of the diagonal matrix contains only the
+    entry \(d_i\), so summing down each column recovers the diagonal as a row vector. In general
+    \(\mathbf 1\T\operatorname{diag}(\mathbf x)=\mathbf x\T\).</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>A component of a vector function has no inner function. What do you put in its slot in the outer Jacobian?</summary>
+  <div class="answer">
+    <p>A 1. Treat the component as its own intermediate, so the outer derivative with respect to
+    that intermediate is 1, and the inner Jacobian carries the real derivative. The slot has to be
+    filled with something — leaving it blank breaks the matrix, and a 0 would wrongly erase the
+    component's contribution.</p>
+  </div>
+</details>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="01-foundations.html"><span class="dir">&larr; Previous</span><span class="title">1. Foundations and notation</span></a>
+  <a class="next" href="03-networks-as-equations.html"><span class="dir">Next &rarr;</span><span class="title">3. Neurons, layers, forward propagation</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

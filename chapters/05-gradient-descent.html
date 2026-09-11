@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>5. Gradient descent — Mathematics of Neural Networks</title>
+<meta name="description" content="Why the negative gradient is the right direction, what the learning rate buys and costs, and the difference between batch, mini-batch and stochastic gradient descent.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">5. Gradient descent</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html" aria-current="page"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 5</p>
+  <h1>Gradient descent</h1>
+  <p class="standfirst">We have derivatives. This chapter turns them into an algorithm: why moving
+  against the gradient reduces the cost, what the learning rate actually controls, and why nobody
+  computes the exact gradient on a real dataset.</p>
+</header>
+
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; The Big Picture</span>
+  <p><strong>Gradient descent is a blind hiker feeling the slope of a mountain with their boots:</strong></p>
+  <ul>
+    <li><strong>The Gradient (\(\nabla C\)):</strong> An arrow pointing straight uphill toward steepest ascent. To reduce cost, you simply step in the exact opposite direction (\(-\nabla C\)).</li>
+    <li><strong>The Learning Rate (\(\eta\)):</strong> Your stride length. Take steps that are too tiny, and you will never reach base camp before nightfall. Take strides that are too gigantic, and you will leap across the valley and crash into the opposite cliff.</li>
+    <li><strong>Mini-batching:</strong> Computing the gradient over all 1,000,000 examples takes minutes just for a single step (Batch GD). Computing it on 1 example is a wild, drunken stagger (Stochastic GD). Taking batches of 32 to 512 examples (Mini-batch) is the sweet spot: fast, GPU-friendly, and slightly noisy enough to bounce out of shallow potholes!</li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. Feel Slope</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <path d="M 10,48 Q 40,30 70,12" fill="none" stroke="var(--rule-firm)" stroke-width="2"/>
+      <circle cx="40" cy="30" r="5" fill="var(--ink)"/>
+      <line x1="40" y1="30" x2="60" y2="16" stroke="var(--rose)" stroke-width="2.5"/>
+    </svg>
+    <h5>Ascent Vector +&nabla;C</h5>
+    <p>Boot feels local incline: vector points straight uphill where error rises.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Step Down</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <path d="M 10,48 Q 40,30 70,12" fill="none" stroke="var(--rule-firm)" stroke-width="2"/>
+      <circle cx="40" cy="30" r="5" fill="var(--ink)"/>
+      <line x1="40" y1="30" x2="20" y2="44" stroke="var(--emerald)" stroke-width="2.5"/>
+    </svg>
+    <h5>Descent Step -&eta;&nabla;C</h5>
+    <p>Step backward downhill: stride length &eta; controls how far you jump.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Mini-Batch Jolt</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <path d="M 15,30 Q 30,50 45,30 Q 60,10 75,30" fill="none" stroke="var(--amber)" stroke-width="2" stroke-dasharray="3 3"/>
+      <circle cx="45" cy="30" r="4" fill="var(--amber)"/>
+    </svg>
+    <h5>Stochastic Escape</h5>
+    <p>Sample noise gently shakes the parameters, popping you out of shallow potholes.</p>
+  </div>
+</div>
+
+<!-- Visual Formula Decoder for Gradient Descent Update -->
+<div class="visual-decoder">
+  <span class="decoder-title">Visual Formula Decoder &middot; The Optimization Update</span>
+  <div class="formula-hero">
+    <span style="color:var(--accent)">\(\theta_{\text{new}}\)</span> =
+    <span style="color:var(--ink)">\(\theta_{\text{old}}\)</span>
+    <span style="color:var(--rose);font-weight:800;margin:0 .3rem">&minus;</span>
+    <span style="color:var(--amber)">\(\eta\)</span> &middot;
+    <span style="color:var(--emerald)">\(\nabla_\theta C\)</span>
+  </div>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">\(\theta_{\text{new}}\) (Updated Parameters)</span>
+      <span class="symbol-desc">New Knob Settings</span>
+      <p>The revised knob settings for all weights and biases after taking one learning step.</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">&minus; (Minus Sign)</span>
+      <span class="symbol-desc">The Downhill Guarantee</span>
+      <p>Walking against the gradient. Ensures the update steps downward toward minimum cost.</p>
+    </div>
+    <div class="decoder-card amber">
+      <span class="term" style="color:var(--amber)">\(\eta\) (Learning Rate)</span>
+      <span class="symbol-desc">Stride Length</span>
+      <p>How aggressively to move. If too small, training crawls; if too big, it explodes to NaN.</p>
+    </div>
+    <div class="decoder-card emerald">
+      <span class="term" style="color:var(--emerald)">\(\nabla_\theta C\) (Gradient Vector)</span>
+      <span class="symbol-desc">Steepest Ascent Slope</span>
+      <p>Direction of steepest increase in loss. Computed efficiently by backpropagation.</p>
+    </div>
+  </div>
+</div>
+
+<div class="analogy-grid">
+  <div class="analogy-card physical">
+    <h4>Physical World: Marble in Viscous Honey</h4>
+    <ul>
+      <li><strong>Gravity pull:</strong> Pulls marble down slope (\(-\nabla C\)).</li>
+      <li><strong>Viscosity friction:</strong> Resists motion, stopping runaway acceleration.</li>
+      <li><strong>Marble Mass / Momentum (\(\beta\)):</strong> Built-up kinetic speed carries the marble smoothly along narrow ravines without jittering across walls!</li>
+    </ul>
+  </div>
+  <div class="analogy-card math">
+    <h4>Mathematical Optimization</h4>
+    <ul>
+      <li><strong>Descent Direction:</strong> \(-\eta \nabla C\).</li>
+      <li><strong>Damping coefficient:</strong> Prevents diverging overshoot.</li>
+      <li><strong>Momentum Accumulator:</strong> \(\mathbf{v} \leftarrow \beta \mathbf{v} - \eta \nabla C\), then \(\theta \leftarrow \theta + \mathbf{v}\). Accumulates consistent directional gradient.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- Master Pictorial Infographic: 3D Gradient Descent on a Loss Landscape -->
+<div class="panel" style="margin: 2.2rem 0; overflow: hidden; border: 1px solid var(--rule-firm);">
+  <div class="panel-head" style="background: var(--surface-2);">
+    <h4>🖼️ Pictorial Guide: 3D Gradient Descent on a Loss Landscape</h4>
+    <span class="hint">Physical mechanics of gravity, step sizes, and momentum</span>
+  </div>
+  <div class="panel-body" style="padding: 1.2rem;">
+    <div style="border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--rule); margin-bottom: 1rem;">
+      <img src="../assets/loss-surface-descent.jpg" alt="3D Gradient Descent on a Loss Landscape Infographic" style="width: 100%; height: auto; display: block;">
+    </div>
+    <div class="diagram-caption" style="font-size: 0.92rem; line-height: 1.6;">
+      <b>Physical Mechanics of the Loss Descent:</b>
+      The cost function creates a multi-dimensional topography of rolling hills and ravines. The gradient \(+\nabla C\) points directly up the steepest incline, so stepping along \(-\eta \nabla C\) carries parameters downhill.
+      Momentum (\(\mathbf{v}_t\)) acts like physical inertia, carrying the parameter sphere along the ravine floor while viscous friction dampens oscillations to reach the global minimum target.
+    </div>
+  </div>
+</div>
+
+<h2 id="gradient-as-arrow">The gradient as an arrow in weight space</h2>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 620 230" width="100%" role="img" aria-label="Figure 5.1: The gradient vector and steepest descent on a cost bowl">
+    <defs>
+      <linearGradient id="bowlGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="var(--accent)" stop-opacity="0.25"/>
+        <stop offset="100%" stop-color="var(--surface-2)" stop-opacity="0.05"/>
+      </linearGradient>
+      <marker id="arrAscent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="var(--rose)"/>
+      </marker>
+      <marker id="arrDescent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+        <polygon points="0 0, 8 3, 0 6" fill="var(--emerald)"/>
+      </marker>
+    </defs>
+    <!-- 3D Cost Bowl Wireframe / Contours -->
+    <ellipse cx="310" cy="115" rx="260" ry="85" fill="url(#bowlGrad)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <ellipse cx="310" cy="125" rx="190" ry="60" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+    <ellipse cx="310" cy="135" rx="120" ry="38" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+    <ellipse cx="310" cy="145" rx="50" ry="16" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+    <circle cx="310" cy="148" r="4" fill="var(--emerald)"/>
+    <text x="310" y="166" text-anchor="middle" font-size="11" fill="var(--emerald)" font-weight="600">Global Minimum (Cost C = 0)</text>
+
+    <!-- Point on slope -->
+    <line x1="210" y1="90" x2="210" y2="200" stroke="var(--rule)" stroke-dasharray="2 3"/>
+    <circle cx="210" cy="200" r="3" fill="var(--ink-muted)"/>
+    <text x="210" y="218" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="ui-monospace, monospace">Current (w₁, w₂)</text>
+
+    <!-- Tangent slope plane -->
+    <polygon points="160,70 260,85 240,110 140,95" fill="var(--accent-soft)" opacity="0.4" stroke="var(--accent)" stroke-width="1"/>
+
+    <!-- Marble on slope -->
+    <circle cx="205" cy="92" r="9" fill="var(--accent)" stroke="#fff" stroke-width="1.8"/>
+
+    <!-- Steepest Ascent Vector (+grad C) -->
+    <line x1="205" y1="92" x2="160" y2="48" stroke="var(--rose)" stroke-width="2.5" marker-end="url(#arrAscent)"/>
+    <text x="145" y="42" font-size="12" font-weight="700" fill="var(--rose)">+&nabla;C (Steepest Ascent)</text>
+
+    <!-- Steepest Descent Vector (-grad C) -->
+    <line x1="205" y1="92" x2="265" y2="130" stroke="var(--emerald)" stroke-width="2.5" marker-end="url(#arrDescent)"/>
+    <text x="272" y="132" font-size="12" font-weight="700" fill="var(--emerald)">&minus;&nabla;C (Steepest Descent)</text>
+
+    <text x="310" y="25" text-anchor="middle" font-size="13" font-weight="600" fill="var(--ink)">Cost Function C(w₁, w₂)</text>
+  </svg>
+  <div class="diagram-caption"><strong>Figure 5.1:</strong> The cost surface above weight space. The gradient vector \(\nabla C\) points directly uphill toward steepest ascent. Subtracting \(\nabla C\) steps downhill in the direction of steepest descent along \(-\nabla C\).</div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Metaphor: The Rolling Marble in Viscous Honey &amp; Momentum</span>
+  <p>Imagine the cost surface as an uneven bowl coated in thick honey. Placing a marble on the surface causes gravity to pull it directly downward along the path of steepest slope (\(-\nabla C\)).</p>
+  <p>Standard gradient descent is like a marble with <strong>zero inertia in infinite viscosity</strong>: the instant gravity stops or changes direction, the marble stops dead in its tracks. It can get hopelessly stranded on very flat plateaus or oscillate endlessly across narrow ravines.</p>
+  <p><strong>Momentum (\(\beta\))</strong> gives the marble mass and inertia! As it rolls down steep slopes, it accumulates velocity. When it enters a flat plateau or a narrow zigzagging ravine, its built-up forward momentum carries it smoothly along the valley floor toward the true minimum!</p>
+</div>
+
+<p>Take a neuron with two weights so the picture fits on a page. Plot \(w_1\) and \(w_2\) on the
+floor and the cost \(C\) vertically. Every point on the floor is a possible setting of the
+parameters, and above it sits the cost that setting produces — a curved surface, and training is the
+search for its lowest point.</p>
+
+<p>At the current parameters the gradient is two numbers:</p>
+
+<div class="eq" data-n="5.1">\[ \nabla_{\mathbf w}C=\begin{bmatrix}\partial C/\partial w_1\\ \partial C/\partial w_2\end{bmatrix}=\begin{bmatrix}e\,x_1\\ e\,x_2\end{bmatrix} \]</div>
+
+<p>Those two numbers can be read as the components of an arrow lying flat on the \((w_1,w_2)\) floor:
+go \(\partial C/\partial w_1\) in the \(w_1\) direction and \(\partial C/\partial w_2\) in the \(w_2\)
+direction. It is a direction in parameter space, not in the cost dimension — it says which way to
+walk, not how the ground rises.</p>
+
+<div class="note def">
+  <span class="label">The fact we lean on</span>
+  <p>The gradient points in the direction of <strong>steepest ascent</strong> of \(C\) at that point.
+  So \(-\nabla C\) points in the direction of steepest descent — the direction that reduces the cost
+  fastest per unit of movement.</p>
+  <p>Chapter 4's result makes this concrete: the arrow leans hardest toward whichever weight has the
+  largest \(|e\,x_i|\). That is exactly the weight where a small change buys the biggest change in
+  cost, which is what "steepest" means.</p>
+</div>
+
+<h2 id="update-rule">The update rule</h2>
+
+<p>Collect every weight and bias in the network into one long vector \(\theta\). The gradient
+\(\nabla_\theta C\) has the same length by construction — one partial derivative per parameter — so
+the two can be subtracted element by element:</p>
+
+<div class="eq headline" data-n="5.2">\[ \theta \;\leftarrow\; \theta-\eta\,\nabla_\theta C \]</div>
+
+<p>which, written out one parameter at a time, is just:</p>
+
+<div class="eq" data-n="5.3">\[ w\leftarrow w-\eta\frac{\partial C}{\partial w}, \qquad b\leftarrow b-\eta\frac{\partial C}{\partial b} \]</div>
+
+<p>The scalar \(\eta\) is the <strong>learning rate</strong>. Deceptively simple, and the entire
+optimiser.</p>
+
+<p>Gradient descent is iterative. Parameters start random, so the initial cost is bad. Each step
+recomputes the gradient at the current position and nudges every parameter downhill. Repeat for
+thousands or tens of thousands of iterations and the cost falls — not always monotonically, but in
+trend — until it flattens out.</p>
+
+<div class="note shape">
+  <span class="label">Unrolling</span>
+  <p>\(\theta\) is a bookkeeping convenience. The parameters really live in several matrices
+  \(W^1,W^2,\dots\) and several vectors \(b^1,b^2,\dots\), of assorted shapes. To apply 5.2 we
+  <strong>unroll</strong> them: flatten each matrix into a vector, concatenate everything into one
+  long column, and do the same to the gradients so the layouts match.</p>
+  <p>After the update the vector is reshaped back into matrices for the next forward pass. Nothing
+  mathematical happens here; it just lets one element-wise line describe the whole update.</p>
+</div>
+
+<h2 id="learning-rate">The learning rate</h2>
+
+<p>The gradient supplies a direction. \(\eta\) decides how far to walk in it, and that choice matters
+more than its plainness suggests.</p>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 620 180" width="100%" role="img" aria-label="Figure 5.2: The four learning rate regimes in gradient descent">
+    <!-- Panel 1: Too small -->
+    <g transform="translate(10, 10)">
+      <rect width="138" height="155" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="69" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--ink)">1. &eta; Too Small</text>
+      <path d="M 15,35 Q 69,135 123,35" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <!-- Tiny steps -->
+      <circle cx="28" cy="72" r="3" fill="var(--accent)"/>
+      <circle cx="34" cy="85" r="3" fill="var(--accent)"/>
+      <circle cx="40" cy="95" r="3" fill="var(--accent)"/>
+      <circle cx="46" cy="103" r="3" fill="var(--accent)"/>
+      <circle cx="51" cy="109" r="3" fill="var(--accent)"/>
+      <circle cx="56" cy="113" r="3" fill="var(--accent)"/>
+      <text x="69" y="142" text-anchor="middle" font-size="10" fill="var(--ink-muted)">Sluggish crawl</text>
+    </g>
+
+    <!-- Panel 2: Optimal -->
+    <g transform="translate(162, 10)">
+      <rect width="138" height="155" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="69" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--emerald)">2. &eta; Optimal</text>
+      <path d="M 15,35 Q 69,135 123,35" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <!-- Confident exponential decay -->
+      <polyline points="25,65 52,108 64,118 69,120" fill="none" stroke="var(--emerald)" stroke-width="1.5"/>
+      <circle cx="25" cy="65" r="3" fill="var(--emerald)"/>
+      <circle cx="52" cy="108" r="3" fill="var(--emerald)"/>
+      <circle cx="64" cy="118" r="3" fill="var(--emerald)"/>
+      <circle cx="69" cy="120" r="4" fill="var(--emerald)"/>
+      <text x="69" y="142" text-anchor="middle" font-size="10" fill="var(--emerald)" font-weight="600">Swift convergence</text>
+    </g>
+
+    <!-- Panel 3: Oscillating -->
+    <g transform="translate(314, 10)">
+      <rect width="138" height="155" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="69" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)">3. &eta; Too Large</text>
+      <path d="M 15,35 Q 69,135 123,35" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <!-- Zigzag across minimum -->
+      <polyline points="24,65 110,68 35,90 98,92 50,108 82,110 69,120" fill="none" stroke="var(--accent)" stroke-width="1.5"/>
+      <circle cx="24" cy="65" r="3" fill="var(--accent)"/>
+      <circle cx="110" cy="68" r="3" fill="var(--accent)"/>
+      <circle cx="35" cy="90" r="3" fill="var(--accent)"/>
+      <circle cx="98" cy="92" r="3" fill="var(--accent)"/>
+      <circle cx="69" cy="120" r="4" fill="var(--accent)"/>
+      <text x="69" y="142" text-anchor="middle" font-size="10" fill="var(--ink-muted)">Ravine oscillation</text>
+    </g>
+
+    <!-- Panel 4: Diverging -->
+    <g transform="translate(466, 10)">
+      <rect width="138" height="155" rx="5" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <text x="69" y="20" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)">4. &eta; Extreme</text>
+      <path d="M 15,35 Q 69,135 123,35" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+      <!-- Exploding outward -->
+      <polyline points="60,115 82,100 42,80 108,55 18,25" fill="none" stroke="var(--rose)" stroke-width="1.5"/>
+      <circle cx="60" cy="115" r="3" fill="var(--rose)"/>
+      <circle cx="82" cy="100" r="3" fill="var(--rose)"/>
+      <circle cx="42" cy="80" r="3" fill="var(--rose)"/>
+      <circle cx="108" cy="55" r="3" fill="var(--rose)"/>
+      <circle cx="18" cy="25" r="4" fill="var(--rose)"/>
+      <text x="69" y="142" text-anchor="middle" font-size="10" fill="var(--rose)" font-weight="600">Explosion &amp; NaN</text>
+    </g>
+  </svg>
+  <div class="diagram-caption"><strong>Figure 5.2:</strong> The four learning rate regimes. When \(\eta\) is too small, updates crawl imperceptibly. At the optimal rate, iterates converge rapidly. As \(\eta\) exceeds the stability threshold (\(\eta > 2/C''\)), iterates overshoot and diverge toward infinity.</div>
+</div>
+
+<p>The reason is a limitation baked into derivatives. A partial derivative describes the surface
+<em>at a point</em> — strictly, in an infinitesimal neighbourhood of it. It is a promise about the
+immediate vicinity and nothing more. Multiply that local information by a large \(\eta\) and you have
+extrapolated a local fact far beyond where it was valid. You can step clean over the minimum and land
+somewhere worse than you started.</p>
+
+<ul>
+  <li><strong>\(\eta\) too large:</strong> steps overshoot, the cost oscillates or diverges outright.</li>
+  <li><strong>\(\eta\) too small:</strong> every step is correct and negligible; training converges,
+  eventually, at a rate nobody can afford.</li>
+</ul>
+
+<p>There is no formula for the right value. \(\eta\) is a <strong>hyperparameter</strong> — set by
+the practitioner rather than learned by the algorithm — usually chosen by sweeping a few values
+across orders of magnitude and watching the loss curve.</p>
+
+<div class="panel">
+  <div class="panel-head">
+    <h4>One-dimensional gradient descent</h4>
+    <span class="hint">\(C(w)=(w-2)^2+0.5\), minimum at \(w=2\)</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>start w <input id="gd-start" type="number" step="0.1" value="7"></label>
+      <label>&#951; <input id="gd-lr" type="number" step="0.05" value="0.2"></label>
+      <button class="btn" id="gd-step">Step</button>
+      <button class="btn primary" id="gd-run">Run 20</button>
+      <button class="btn" id="gd-reset">Reset</button>
+    </div>
+    <div id="gd-plot" class="plot"></div>
+    <div id="gd-info" class="readout" style="margin-top:1rem"></div>
+    <p style="font-size:.9rem;color:var(--ink-muted);margin-top:.9rem">
+      Three values are worth trying. \(\eta=0.2\) converges smoothly. \(\eta=0.9\) overshoots the
+      minimum every step but still converges, zig-zagging across it. \(\eta=1.1\) diverges: each step
+      lands further from the minimum than the last, and the cost climbs forever. The boundary here is
+      \(\eta=1\), because \(C''=2\) and descent on a quadratic is stable exactly while
+      \(\eta&lt;2/C''\).
+    </p>
+  </div>
+</div>
+
+<div class="panel">
+  <div class="panel-head">
+    <h4>2D Loss Surface &amp; Physics Optimization Arena</h4>
+    <span class="hint">Elongated Ravine: \(C(w_1, w_2) = \frac{1}{2}(w_1^2 + 8w_2^2)\)</span>
+  </div>
+  <div class="panel-body">
+    <div class="chip-row" style="margin-bottom:0.75rem">
+      <span style="font-size:0.82rem;font-weight:600;color:var(--ink-muted);align-self:center">Preset Regimes:</span>
+      <button class="chip arena-preset" data-preset="optimal">Optimal + Momentum</button>
+      <button class="chip arena-preset" data-preset="small">Sluggish (Small &eta;)</button>
+      <button class="chip arena-preset" data-preset="oscillate">Oscillating Ravine</button>
+      <button class="chip arena-preset" data-preset="diverge">Diverging Explosion</button>
+    </div>
+    <div class="controls">
+      <label>&eta; (Learning Rate) <input id="arena-lr" type="range" min="0.01" max="0.35" step="0.01" value="0.08"></label>
+      <label>&beta; (Momentum) <input id="arena-mom" type="range" min="0" max="0.95" step="0.05" value="0.7"></label>
+      <label>Mini-batch Noise <input id="arena-noise" type="range" min="0" max="1" step="0.1" value="0"></label>
+      <div class="btn-group">
+        <button class="btn" id="arena-step">Single Step</button>
+        <button class="btn primary" id="arena-play">Simulate Roll</button>
+        <button class="btn" id="arena-reset">Reset</button>
+      </div>
+    </div>
+    <div class="canvas-wrap">
+      <canvas id="loss-arena-canvas" width="580" height="300" style="display:block;width:100%;border-radius:6px;cursor:crosshair;"></canvas>
+      <span class="canvas-badge">Click anywhere to drop marble</span>
+    </div>
+    <div id="arena-info" class="readout" style="margin-top:0.8rem"></div>
+  </div>
+</div>
+
+<h2 id="batching">Batch, mini-batch, stochastic</h2>
+
+<p>Equation 4.9 averages over all \(m\) training examples. That is <strong>batch gradient
+descent</strong>, and it is the mathematically honest version: every example votes on the direction
+before a single step is taken.</p>
+
+<p>It is also, past a certain scale, unusable. With a million examples, one step means a forward
+pass, a backward pass and a gradient accumulation for each of the million — then one update. The
+second step repeats all of it. The arithmetic per unit of progress is brutal.</p>
+
+<p>The fix is to accept an approximation. Shuffle the training set and cut it into small
+<strong>mini-batches</strong> — say 120 examples each. Compute the average gradient over one
+mini-batch, take a step, move to the next mini-batch, step again.</p>
+
+<div class="eq" data-n="5.4">\[ \frac{1{,}000{,}000}{120}\approx 8333 \text{ mini-batches, hence } 8333 \text{ steps per pass over the data — against } 1 \]</div>
+
+<p>The gradient from 120 examples is not the true gradient. The gambit is that 120 randomly chosen
+examples represent the full distribution well enough to give a direction that is roughly right, and
+that thousands of roughly-right steps beat one perfect one. In practice the gambit pays, decisively.</p>
+
+<div class="note pitfall">
+  <span class="label">Shuffle first, and mean it</span>
+  <p>Mini-batching assumes each batch is a fair sample of the data. If the file happens to be sorted
+  by label, the first batch is all one class, and the model lurches toward predicting that class
+  before the next batch drags it elsewhere. The same applies to data sorted by date, by source, or by
+  anything correlated with the target.</p>
+  <p>Shuffle before batching, and reshuffle between passes over the data.</p>
+</div>
+
+<h3>A note on the names</h3>
+
+<p>The terminology is genuinely muddled and worth stating plainly.</p>
+
+<div class="table-wrap">
+<table>
+  <thead><tr><th>Method</th><th>Examples per step</th><th>Character of the path</th></tr></thead>
+  <tbody>
+    <tr><td>Batch gradient descent</td><td>all \(m\)</td><td>Smooth, direct, very expensive per step.</td></tr>
+    <tr><td>Mini-batch gradient descent</td><td>32 &ndash; 512, typically</td><td>Slightly noisy, far more steps per unit of computation. The default.</td></tr>
+    <tr><td>Stochastic gradient descent, strictly</td><td>1</td><td>Very jagged; a single example is a poor estimate of a million.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>In ordinary usage "SGD" almost always means the middle row. The strict batch-size-one version is
+rarely what anyone runs, but it names the family, and the name stuck.</p>
+
+<p>Picture the three on a contour plot of the cost. Batch descent walks a clean line to the minimum
+and takes forever to get going. Strict SGD staggers drunkenly but covers ground. Mini-batch wobbles
+mildly and arrives first — which is why it won.</p>
+
+<div class="diagram-box">
+  <svg viewBox="0 0 620 230" width="100%" role="img" aria-label="Figure 5.3: Trajectory paths of Batch GD vs Mini-Batch GD vs Pure SGD">
+    <defs>
+      <marker id="arrBatch" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="var(--accent)"/>
+      </marker>
+      <marker id="arrMini" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="var(--emerald)"/>
+      </marker>
+      <marker id="arrSgd" markerWidth="7" markerHeight="5" refX="6" refY="2.5" orient="auto">
+        <polygon points="0 0, 7 2.5, 0 5" fill="var(--rose)"/>
+      </marker>
+    </defs>
+    <!-- Contours of anisotropic valley -->
+    <ellipse cx="380" cy="120" rx="210" ry="85" fill="none" stroke="var(--rule-firm)" stroke-width="1.2"/>
+    <ellipse cx="380" cy="120" rx="150" ry="60" fill="none" stroke="var(--rule)" stroke-width="1"/>
+    <ellipse cx="380" cy="120" rx="90" ry="36" fill="none" stroke="var(--rule)" stroke-width="1"/>
+    <ellipse cx="380" cy="120" rx="35" ry="14" fill="none" stroke="var(--rule)" stroke-width="1"/>
+    <circle cx="380" cy="120" r="4" fill="var(--emerald)"/>
+    <text x="380" y="142" text-anchor="middle" font-size="11" fill="var(--emerald)" font-weight="600">Optimum (0, 0)</text>
+
+    <!-- Starting point -->
+    <circle cx="205" cy="50" r="5" fill="var(--ink)"/>
+    <text x="180" y="44" font-size="11" font-weight="600" fill="var(--ink)">Start θ₀</text>
+
+    <!-- Batch GD (Purple, smooth, few steps) -->
+    <path d="M 205,50 Q 300,90 380,120" fill="none" stroke="var(--accent)" stroke-width="2.5" marker-end="url(#arrBatch)"/>
+    <circle cx="245" cy="72" r="3" fill="var(--accent)"/>
+    <circle cx="300" cy="93" r="3" fill="var(--accent)"/>
+    <circle cx="345" cy="109" r="3" fill="var(--accent)"/>
+
+    <!-- Mini-Batch GD (Emerald, fast, mild wobble) -->
+    <polyline points="205,50 220,65 240,60 262,82 285,80 315,102 342,108 365,116 380,120" fill="none" stroke="var(--emerald)" stroke-width="2" marker-end="url(#arrMini)"/>
+
+    <!-- Stochastic GD (Rose, wildly erratic brownian) -->
+    <polyline points="205,50 185,68 215,85 195,105 240,115 220,135 270,125 295,145 320,110 305,85 345,100 330,130 365,125 380,120" fill="none" stroke="var(--rose)" stroke-width="1.3" opacity="0.85" marker-end="url(#arrSgd)"/>
+
+    <!-- Legend box -->
+    <g transform="translate(20, 20)">
+      <rect width="150" height="90" rx="5" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1"/>
+      <!-- Batch GD -->
+      <line x1="12" y1="22" x2="35" y2="22" stroke="var(--accent)" stroke-width="2.5"/>
+      <text x="42" y="26" font-size="11" fill="var(--ink)">Batch GD (smooth)</text>
+      <!-- Mini-batch GD -->
+      <line x1="12" y1="48" x2="35" y2="48" stroke="var(--emerald)" stroke-width="2"/>
+      <text x="42" y="52" font-size="11" fill="var(--ink)">Mini-Batch (ideal)</text>
+      <!-- SGD -->
+      <line x1="12" y1="74" x2="35" y2="74" stroke="var(--rose)" stroke-width="1.5"/>
+      <text x="42" y="78" font-size="11" fill="var(--ink)">Stochastic (noisy)</text>
+    </g>
+  </svg>
+  <div class="diagram-caption"><strong>Figure 5.3:</strong> Trajectory paths in parameter space. Batch gradient descent (purple) advances monotonically along the true gradient. Mini-batch descent (green) wobbles slightly while making orders of magnitude more updates per second. Pure SGD (pink) wanders erratically.</div>
+</div>
+
+<div class="note beyond">
+  <span class="label">Noise is not purely a cost</span>
+  <p>The noise in a mini-batch gradient has a genuine benefit: it can knock the parameters out of
+  a shallow local minimum or off a saddle point that an exact gradient would have settled into.
+  High-dimensional loss surfaces are full of saddle points, and a little stochasticity helps escape
+  them.</p>
+  <p>This is also why modern optimisers do not simply lower \(\eta\) to zero. Momentum accumulates a
+  running average of past gradients to push through flat regions; Adam additionally keeps a per-parameter
+  running scale, giving each weight its own effective step size. Both are wrappers around equation
+  5.2 — the gradient they consume is still the one backpropagation computes.</p>
+</div>
+
+<h2 id="convergence">Convergence</h2>
+
+<p>Repeat the loop — forward pass, backward pass, update — and watch the cost. A healthy run shows a
+steady decline, possibly with small upward blips from unlucky mini-batches, then a flattening. The
+flattening means the gradient has gone small: the parameters sit near a point where the surface is
+locally level.</p>
+
+<p>That point is a local minimum, and it might not be the global one. In low dimensions this sounds
+alarming. In the millions of dimensions a real network occupies, it turns out to matter much less
+than intuition suggests, since most such networks find solutions of comparable quality from most
+starting points.</p>
+
+<div class="note key">
+  <span class="label">Where we are</span>
+  <p>We can optimise, given a gradient. For a one-neuron network chapter 4 supplies it. For a network
+  of any depth we still have no efficient way to compute \(\nabla_\theta C\) — and that missing
+  piece is backpropagation.</p>
+</div>
+
+<h2 id="self-check">Self-check</h2>
+
+<details class="check">
+  <summary>Why subtract the gradient rather than add it?</summary>
+  <div class="answer">
+    <p>The gradient points toward steepest <em>increase</em> of the cost. We want a decrease, so we
+    move the opposite way. Adding it would be gradient <em>ascent</em>, a perfectly good algorithm
+    for maximising something — just not what we want here.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>\(\eta\) too large makes training fail. Why, in terms of what a derivative actually promises?</summary>
+  <div class="answer">
+    <p>A partial derivative describes the surface in an infinitesimal neighbourhood of the current
+    point. It is a local statement. Multiplying it by a large \(\eta\) extrapolates that local
+    statement far outside the region where it holds, so the step can sail past the minimum and land
+    somewhere higher. Repeat, and the iterates diverge.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>A dataset has 50,000 examples and a batch size of 100. How many updates in one pass, and how many with batch gradient descent?</summary>
+  <div class="answer">
+    <p>500 updates per pass with mini-batches; 1 with batch gradient descent. Both do roughly the
+    same amount of gradient arithmetic per pass — the difference is that mini-batching spends it on
+    500 opportunities to improve instead of one.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why must \(\theta\) and \(\nabla_\theta C\) have the same length?</summary>
+  <div class="answer">
+    <p>Because 5.2 subtracts them element by element. Each parameter must line up with its own
+    partial derivative. That is the entire reason for unrolling: the parameters live in matrices and
+    vectors of different shapes, and flattening both sides identically is what makes a single
+    subtraction well defined.</p>
+  </div>
+</details>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="04-neuron-derivatives.html"><span class="dir">&larr; Previous</span><span class="title">4. Differentiating a single neuron</span></a>
+  <a class="next" href="06-backpropagation.html"><span class="dir">Next &rarr;</span><span class="title">6. Backpropagation</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

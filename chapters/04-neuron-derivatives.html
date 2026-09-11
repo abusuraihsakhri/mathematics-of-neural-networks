@@ -1,0 +1,619 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>4. Differentiating a single neuron — Mathematics of Neural Networks</title>
+<meta name="description" content="The complete derivation of the cost gradient for a one-neuron network: splitting the dot product, the ReLU branch, and the error term that falls out.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="../css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <button class="icon-btn" id="menu-btn" aria-label="Toggle chapter navigation" aria-expanded="false">&#9776;</button>
+  <a class="brand" href="../index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">4. Differentiating a single neuron</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<div class="shell">
+<aside class="sidebar">
+  <h4>Chapters</h4>
+  <nav>
+    <a href="01-foundations.html"><em>1</em>Foundations and notation</a>
+    <a href="02-matrix-calculus.html"><em>2</em>The matrix calculus toolkit</a>
+    <a href="03-networks-as-equations.html"><em>3</em>Neurons, layers, forward propagation</a>
+    <a href="04-neuron-derivatives.html" aria-current="page"><em>4</em>Differentiating a single neuron</a>
+    <a href="05-gradient-descent.html"><em>5</em>Gradient descent</a>
+    <a href="06-backpropagation.html"><em>6</em>Backpropagation</a>
+    <a href="07-reference.html"><em>7</em>Reference</a>
+  </nav>
+  <section>
+    <h4>On this page</h4>
+    <div id="onthispage"></div>
+  </section>
+</aside>
+
+<main class="content">
+<article class="prose">
+
+<header class="chapter-head">
+  <p class="kicker">Chapter 4</p>
+  <h1>Differentiating a single neuron</h1>
+  <p class="standfirst">The steepest climb in the guide. We take one neuron with five inputs and
+  derive \(\partial C/\partial \mathbf w\) and \(\partial C/\partial b\) completely, with no steps
+  skipped — because the shape of the answer is what makes chapter 6 legible instead of magical.</p>
+</header>
+
+<!-- Simplified Summary Card -->
+<div class="simplified-card">
+  <span class="badge">In Simple Terms &middot; The Big Picture</span>
+  <h3>Differentiating One Neuron: The Grand Punchline</h3>
+  <ul>
+    <li><strong>The Question:</strong> If we wiggle weight \(w_i\) by a microscopic amount, how much does the cost \(C\) change? That is \(\partial C/\partial w_i\).</li>
+    <li><strong>The Chain of Steps:</strong> We split the journey from weight to cost into 4 simple links:
+      \(\mathbf w \to \mathbf h \text{ (product)} \to s \text{ (sum)} \to z \text{ (pre-activation)} \to a \text{ (activation)} \to C \text{ (cost)}\).</li>
+    <li><strong>The Beautiful Result:</strong> \(\partial C/\partial w_i = \text{Error} \times x_i\).
+      A weight's sensitivity is simply the network's mistake multiplied by that weight's incoming input! If \(x_i\) is huge, \(w_i\) is influential. If \(x_i\) is zero, \(w_i\) receives zero update.</li>
+  </ul>
+</div>
+
+<!-- Pictorial Storyboard Strip -->
+<div class="pictorial-strip">
+  <div class="strip-step">
+    <span class="step-badge">1. The Mistake</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="28" cy="30" r="14" fill="var(--surface-2)" stroke="var(--emerald)" stroke-width="2"/>
+      <text x="28" y="34" text-anchor="middle" font-size="10" font-weight="700" fill="var(--emerald)">a</text>
+      <circle cx="52" cy="30" r="14" fill="var(--surface-2)" stroke="var(--ink-muted)" stroke-width="1.5"/>
+      <text x="52" y="34" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink-muted)">y</text>
+    </svg>
+    <h5>Error Gap e = a - y</h5>
+    <p>How wrong the neuron's prediction was compared to target truth y.</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">2. Lever Arm</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <polygon points="40,38 32,50 48,50" fill="var(--ink)"/>
+      <line x1="12" y1="36" x2="68" y2="36" stroke="var(--amber)" stroke-width="3"/>
+      <circle cx="68" cy="36" r="4" fill="var(--amber)"/>
+    </svg>
+    <h5>Input Leverage (x)</h5>
+    <p>Incoming input x acts like a lever arm: larger x means huge weight influence!</p>
+  </div>
+  <div class="strip-step">
+    <span class="step-badge">3. Blown Fuse</span>
+    <svg viewBox="0 0 80 60" width="80" height="60">
+      <circle cx="40" cy="30" r="18" fill="var(--rose-soft)" stroke="var(--rose)" stroke-width="2"/>
+      <line x1="28" y1="30" x2="36" y2="30" stroke="var(--rose)" stroke-width="2"/>
+      <line x1="44" y1="30" x2="52" y2="30" stroke="var(--rose)" stroke-width="2"/>
+    </svg>
+    <h5>Dying ReLU Diode</h5>
+    <p>If pre-activation z &le; 0, the circuit breaks and all gradient flow stops dead.</p>
+  </div>
+</div>
+
+<!-- Visual Formula Decoder for Neuron Gradient -->
+<div class="visual-decoder">
+  <span class="decoder-title">Visual Formula Decoder &middot; Single-Neuron Derivative</span>
+  <div class="formula-hero">
+    <span style="color:var(--accent)">\(\frac{\partial C}{\partial w_i}\)</span> =
+    <span style="color:var(--rose)">\(e\)</span> &middot;
+    <span style="color:var(--emerald)">\(x_i\)</span>
+    <span style="margin: 0 1rem; color:var(--rule-firm)">|</span>
+    <span style="color:var(--accent)">\(\frac{\partial C}{\partial b}\)</span> =
+    <span style="color:var(--rose)">\(e\)</span>
+  </div>
+  <div class="decoder-grid">
+    <div class="decoder-card accent">
+      <span class="term" style="color:var(--accent)">\(\partial C/\partial w_i\) (Weight Sensitivity)</span>
+      <span class="symbol-desc">Connection Gradient</span>
+      <p>How much turning knob \(w_i\) by 1 notch will nudge the total prediction error.</p>
+    </div>
+    <div class="decoder-card rose">
+      <span class="term" style="color:var(--rose)">\(e = (a - y)\) (Shared Error)</span>
+      <span class="symbol-desc">The Output Deficit</span>
+      <p>How much total error the neuron produced. Every incoming weight shares this exact same factor!</p>
+    </div>
+    <div class="decoder-card emerald">
+      <span class="term" style="color:var(--emerald)">\(x_i\) (Activity Multiplier)</span>
+      <span class="symbol-desc">Input Evidence</span>
+      <p>How active this wire was. If \(x_i = 0\), the wire was inactive and gets zero update!</p>
+    </div>
+    <div class="decoder-card amber">
+      <span class="term" style="color:var(--amber)">\(\partial C/\partial b = e\) (Bias Sensitivity)</span>
+      <span class="symbol-desc">Direct Error Inheritance</span>
+      <p>Bias has no multiplier because it is hardwired with coefficient 1. Its gradient is purely \(e\).</p>
+    </div>
+  </div>
+</div>
+
+<div class="analogy-grid">
+  <div class="analogy-card physical">
+    <h4>Mechanical Lever Analogy</h4>
+    <ul>
+      <li><strong>Pivot point:</strong> The neuron's pre-activation threshold.</li>
+      <li><strong>Applied Force:</strong> The total mistake or discrepancy (\(e\)).</li>
+      <li><strong>Lever Arm Length:</strong> The incoming input magnitude (\(x_i\)).</li>
+      <li><strong>Torque on Pivot:</strong> \(\tau = \text{Force} \times \text{Distance} = e \cdot x_i\). The longer the lever arm, the greater the turning torque!</li>
+    </ul>
+  </div>
+  <div class="analogy-card math">
+    <h4>Neuron Calculus Counterpart</h4>
+    <ul>
+      <li><strong>Neuron State:</strong> The weighted sum \(z = \mathbf{w}\T \mathbf{x} + b\).</li>
+      <li><strong>Cost Derivative:</strong> \(\partial C/\partial a = e = a - y\).</li>
+      <li><strong>Affine Derivative:</strong> \(\partial z/\partial w_i = x_i\).</li>
+      <li><strong>Chain Rule Product:</strong> \(\partial C/\partial w_i = (\partial C/\partial a) \cdot (\partial a/\partial z) \cdot (\partial z/\partial w_i) = e \cdot 1 \cdot x_i\).</li>
+    </ul>
+  </div>
+</div>
+
+<h2 id="the-model">The simple model</h2>
+
+<p>Five inputs, one neuron, one ReLU, one cost:</p>
+
+<div class="eq" data-n="4.1">\[ \mathbf x\in\mathbb R^5 \;\longrightarrow\; z=\mathbf w\T\mathbf x+b \;\longrightarrow\; a=\operatorname{ReLU}(z) \;\longrightarrow\; C=\tfrac{1}{2m}\textstyle\sum_i\bigl(y^{(i)}-a^{(i)}\bigr)^2 \]</div>
+
+<!-- Visual Diagram: Computational Graph with Forward and Backward Flow -->
+<div class="diagram-box">
+  <svg viewBox="0 0 720 180" width="100%" role="img" aria-label="Computational DAG of a single neuron showing forward evaluation and backward derivative multiplication">
+    <!-- Forward path -->
+    <rect x="25" y="45" width="80" height="42" rx="6" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="65" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">w, x</text>
+
+    <line x1="105" y1="66" x2="160" y2="66" stroke="var(--accent)" stroke-width="2"/>
+
+    <rect x="160" y="45" width="95" height="42" rx="6" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="207" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">h = w &odot; x</text>
+
+    <line x1="255" y1="66" x2="310" y2="66" stroke="var(--accent)" stroke-width="2"/>
+
+    <rect x="310" y="45" width="95" height="42" rx="6" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="357" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">z = &sum;h + b</text>
+
+    <line x1="405" y1="66" x2="460" y2="66" stroke="var(--accent)" stroke-width="2"/>
+
+    <rect x="460" y="45" width="95" height="42" rx="6" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <text x="507" y="70" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink)" font-family="ui-monospace, monospace">a = &phi;(z)</text>
+
+    <line x1="555" y1="66" x2="610" y2="66" stroke="var(--accent)" stroke-width="2"/>
+
+    <rect x="610" y="45" width="85" height="42" rx="6" fill="var(--rose-soft)" stroke="var(--rose)" stroke-width="1.5"/>
+    <text x="652" y="70" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)" font-family="ui-monospace, monospace">Cost C</text>
+
+    <!-- Backward gradient arrows -->
+    <path d="M 652 110 L 507 110" stroke="var(--rose)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="580" y="125" text-anchor="middle" font-size="10" font-weight="700" fill="var(--rose)" font-family="ui-monospace, monospace">&part;C/&part;a = e</text>
+
+    <path d="M 507 110 L 357 110" stroke="var(--emerald)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="432" y="125" text-anchor="middle" font-size="10" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">&times; &phi;'(z)</text>
+
+    <path d="M 357 110 L 207 110" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="282" y="125" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">&times; 1</text>
+
+    <path d="M 207 110 L 65 110" stroke="var(--accent)" stroke-width="2" stroke-dasharray="4 3"/>
+    <text x="136" y="125" text-anchor="middle" font-size="10" font-weight="700" fill="var(--accent)" font-family="ui-monospace, monospace">&times; x_i</text>
+
+    <text x="360" y="25" text-anchor="middle" font-size="11" font-weight="700" fill="var(--accent)" font-family="Inter, sans-serif">&rarr; Forward Evaluation Pass &rarr;</text>
+    <text x="360" y="155" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)" font-family="Inter, sans-serif">&larr; Backward Chain Rule Sensitivity Flow &larr;</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 4.1:</b> The computational graph of a single neuron. Forward signals flow left-to-right to compute the cost. Sensitivity derivatives flow right-to-left, multiplying local rates of change along the path.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: Mechanical Levers &amp; Sensitivity</span>
+  <p>Why does input \(x_i\) multiply the weight gradient?</p>
+  <ul>
+    <li>Imagine a mechanical crowbar or lever: the weight \(w_i\) is the hinge angle, and the input \(x_i\) is the length of the lever arm.</li>
+    <li>If the lever arm is 10 meters long (\(x_i = 10\)), twisting the hinge by 1 degree moves the far end by a massive 17 centimeters!</li>
+    <li>If the lever arm is 0 meters long (\(x_i = 0\)), you can twist the hinge all you want—the far end does not move at all.</li>
+    <li>Therefore, a weight's influence on the output is strictly proportional to how long its input lever is: \(\partial z/\partial w_i = x_i\).</li>
+  </ul>
+</div>
+
+<p>Six tunable numbers: five weights and one bias. We want six partial derivatives. Rather than reach
+for a formula we will build the chain link by link, because those links are exactly the ones
+backpropagation later reuses.</p>
+
+<p>The work splits in two. First, how the <em>activation</em> responds to the parameters. Then, how
+the <em>cost</em> responds to the activation. Multiply the two and we are done.</p>
+
+<h2 id="splitting">Splitting the dot product</h2>
+
+<p>The obstacle is that \(z=\mathbf w\T\mathbf x+b\) is not one of the operations in our chapter 2
+toolkit. A dot product is, however, two of them stacked: a Hadamard product followed by a sum.
+Rewrite it as such and the chain becomes differentiable term by term.</p>
+
+<div class="eq headline" data-n="4.2">\[ z=\operatorname{sum}(\mathbf w\odot\mathbf x)+b \]</div>
+
+<p>Now name the intermediates, exactly as the algorithmic chain rule of chapter 2 prescribes:</p>
+
+<div class="eq" data-n="4.3">\[ \mathbf h=\mathbf w\odot\mathbf x, \qquad s=\operatorname{sum}(\mathbf h), \qquad z=s+b, \qquad a=\phi(z) \]</div>
+
+<p>and the chain to \(\mathbf w\) has four links:</p>
+
+<div class="eq" data-n="4.4">\[ \frac{\partial a}{\partial \mathbf w}=\frac{\partial a}{\partial z}\;\frac{\partial z}{\partial s}\;\frac{\partial s}{\partial \mathbf h}\;\frac{\partial \mathbf h}{\partial \mathbf w} \]</div>
+
+<p>The bias route is shorter. \(b\) enters only at \(z=s+b\), with no involvement in \(\mathbf h\) or
+\(s\) at all, so those links are simply absent:</p>
+
+<div class="eq" data-n="4.5">\[ \frac{\partial a}{\partial b}=\frac{\partial a}{\partial z}\;\frac{\partial z}{\partial b} \]</div>
+
+<h2 id="activation-derivatives">How the activation responds</h2>
+
+<ol class="derivation">
+  <li>
+    <strong>The Hadamard link.</strong> From result 2.8, differentiating \(\mathbf w\odot\mathbf x\)
+    with respect to \(\mathbf w\) leaves the other factor on a diagonal:
+    <div class="eq">\[ \frac{\partial \mathbf h}{\partial \mathbf w}=\operatorname{diag}(x_1,x_2,\dots,x_n) \]</div>
+    <span class="why">\(n\times n\), zero off the diagonal: weight \(i\) affects only product \(i\).</span>
+  </li>
+  <li>
+    <strong>The sum link.</strong> From result 2.13, with no scaling inside the sum:
+    <div class="eq">\[ \frac{\partial s}{\partial \mathbf h}=\mathbf 1\T \]</div>
+    <span class="why">\(1\times n\). Every term of a plain sum contributes with weight one.</span>
+  </li>
+  <li>
+    <strong>The bias link.</strong> \(z=s+b\), so with respect to \(s\) the bias is a constant:
+    <div class="eq">\[ \frac{\partial z}{\partial s}=1, \qquad \frac{\partial z}{\partial b}=1 \]</div>
+  </li>
+  <li>
+    <strong>Collapse the linear part.</strong> Multiply the three links computed so far:
+    <div class="eq">\[ \frac{\partial z}{\partial \mathbf w}=1\cdot\mathbf 1\T\operatorname{diag}(\mathbf x)=\mathbf x\T \]</div>
+    <span class="why">A row of ones times a diagonal reads off the diagonal — the identity flagged at the end of chapter 2. Shapes: \((1\times n)(n\times n)=(1\times n)\).</span>
+  </li>
+  <li>
+    <strong>The activation link.</strong> ReLU is \(\max(0,z)\). Its derivative is piecewise:
+    <div class="eq">\[ \frac{\partial a}{\partial z}=\phi'(z)=\begin{cases}0,& z\le 0\\ 1,& z>0\end{cases} \]</div>
+    <span class="why">Strictly undefined at \(z=0\); implementations return 0 and the exact-zero case never arises in floating point anyway.</span>
+  </li>
+</ol>
+
+<p>Multiply link 5 into link 4 and the activation derivatives are done:</p>
+
+<div class="eq headline" data-n="4.6">\[ \frac{\partial a}{\partial \mathbf w}=\begin{cases}\mathbf 0\T,& \mathbf w\T\mathbf x+b\le 0\\[4pt] \mathbf x\T,& \mathbf w\T\mathbf x+b>0\end{cases} \qquad\qquad \frac{\partial a}{\partial b}=\begin{cases}0,& \mathbf w\T\mathbf x+b\le 0\\[4pt] 1,& \mathbf w\T\mathbf x+b>0\end{cases} \]</div>
+
+<div class="note pitfall">
+  <span class="label">The zero branch is a whole vector</span>
+  <p>When ReLU is off, \(\partial a/\partial\mathbf w\) is not the scalar 0 — it is \(\mathbf 0\T\),
+  a row of \(n\) zeros. The factor \(\phi'(z)=0\) multiplies the entire \(1\times n\) row
+  \(\mathbf x\T\), annihilating every entry at once.</p>
+  <p>This is the <strong>dying ReLU</strong> problem in its most naked form. A neuron whose
+  pre-activation is negative for every training example has a zero gradient on all of its weights and
+  its bias, forever. It cannot learn its way back, because learning is driven by exactly the gradient
+  that is zero. Leaky ReLU exists to keep that branch slightly non-zero.</p>
+</div>
+
+<!-- Visual Diagram: The Dying ReLU Diode Analogy -->
+<div class="diagram-box">
+  <svg viewBox="0 0 680 150" width="100%" role="img" aria-label="Electrical circuit analogy of ReLU: closed switch passing signal vs open switch breaking the circuit">
+    <!-- Active state (left) -->
+    <rect x="30" y="25" width="290" height="110" rx="10" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2"/>
+    <text x="175" y="48" text-anchor="middle" font-size="12" font-weight="700" fill="var(--emerald)" font-family="Inter, sans-serif">Active State: z > 0 (Circuit Closed)</text>
+    <line x1="55" y1="90" x2="135" y2="90" stroke="var(--emerald)" stroke-width="3"/>
+    <circle cx="135" cy="90" r="5" fill="var(--emerald)"/>
+    <!-- Closed switch -->
+    <line x1="135" y1="90" x2="195" y2="90" stroke="var(--emerald)" stroke-width="3"/>
+    <circle cx="195" cy="90" r="5" fill="var(--emerald)"/>
+    <line x1="195" y1="90" x2="275" y2="90" stroke="var(--emerald)" stroke-width="3"/>
+    <text x="165" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="var(--emerald)" font-family="ui-monospace, monospace">&part;a/&part;z = 1 (Signal passes!)</text>
+
+    <!-- Dead state (right) -->
+    <rect x="360" y="25" width="290" height="110" rx="10" fill="var(--surface)" stroke="var(--rose)" stroke-width="2"/>
+    <text x="505" y="48" text-anchor="middle" font-size="12" font-weight="700" fill="var(--rose)" font-family="Inter, sans-serif">Dead State: z &le; 0 (Circuit Open / Blown Fuse)</text>
+    <line x1="385" y1="90" x2="465" y2="90" stroke="var(--ink-muted)" stroke-width="2"/>
+    <circle cx="465" cy="90" r="5" fill="var(--rose)"/>
+    <!-- Open switch -->
+    <line x1="465" y1="90" x2="515" y2="70" stroke="var(--rose)" stroke-width="3"/>
+    <circle cx="525" cy="90" r="5" fill="var(--rose)"/>
+    <line x1="525" y1="90" x2="605" y2="90" stroke="var(--ink-muted)" stroke-width="2"/>
+    <text x="505" y="118" text-anchor="middle" font-size="11" font-weight="700" fill="var(--rose)" font-family="ui-monospace, monospace">&part;a/&part;z = 0 (Connection broken!)</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 4.2:</b> The Dying ReLU electrical diode model. When pre-activation \(z \le 0\), the switch disconnects. No gradient signal can travel backward across an open switch, permanently freezing the neuron's weights.
+  </div>
+</div>
+
+<div class="note physical">
+  <span class="label">Physical Intuition: The Blown Electrical Fuse</span>
+  <p>Think of ReLU as a spring-loaded circuit breaker:</p>
+  <ul>
+    <li>As long as \(z > 0\), current flows freely through the wire. The local sensitivity is a perfect conductor: \(\partial a/\partial z = 1\).</li>
+    <li>If \(z \le 0\), the circuit breaker trips open. The circuit is physically broken: \(\partial a/\partial z = 0\).</li>
+    <li>Because backpropagation calculates parameter gradients by multiplying through this link (\(\partial C/\partial w_i = \partial C/\partial a \cdot \mathbf{\partial a/\partial z} \cdot x_i\)), multiplying by zero destroys the entire signal. You can push or pull on the input wires all day long, but zero current reaches the weights!</li>
+  </ul>
+</div>
+
+<!-- Interactive Single-Neuron Chain Rule Microscope -->
+<div class="panel" id="ch4-chain-scope">
+  <div class="panel-head">
+    <h4>Interactive Chain Rule &amp; Error Sensitivity Microscope</h4>
+    <span class="hint">Adjust weights and inputs to inspect the 4 chain rule links and test gradient checking</span>
+  </div>
+  <div class="panel-body">
+    <div class="controls">
+      <label>Weight w₁: <output id="ch4-w1-val">1.50</output>
+        <input id="ch4-w1" type="range" min="-3" max="3" step="0.1" value="1.5">
+      </label>
+      <label>Input x₁: <output id="ch4-x1-val">2.00</output>
+        <input id="ch4-x1" type="range" min="-3" max="3" step="0.1" value="2.0">
+      </label>
+      <label>Bias b: <output id="ch4-b-val">0.50</output>
+        <input id="ch4-b" type="range" min="-6" max="3" step="0.1" value="0.5">
+      </label>
+      <label>Target y: <output id="ch4-y-val">1.00</output>
+        <input id="ch4-y" type="range" min="0" max="5" step="0.5" value="1.0">
+      </label>
+    </div>
+    <div style="display:flex;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap">
+      <button class="btn primary" id="ch4-perturb">Perturb w₁ by +0.01 (Gradient Check)</button>
+      <button class="btn" id="ch4-kill">Trip Fuse (Set b = -4 &rarr; Dying ReLU)</button>
+    </div>
+    <div id="ch4-out"></div>
+  </div>
+</div>
+
+<p>Read equation 4.6 once more, because it already contains the chapter's main idea. In the active
+branch, <strong>the sensitivity of the activation to weight \(i\) is just \(x_i\)</strong>. The weight
+attached to the largest input is the weight with the most leverage.</p>
+
+<h2 id="cost-weights">From the activation to the cost</h2>
+
+<p>One link remains: how \(C\) responds to \(a\). Then the chain closes.</p>
+
+<div class="eq" data-n="4.7">\[ \frac{\partial C}{\partial \mathbf w}=\frac{\partial C}{\partial a}\;\frac{\partial a}{\partial \mathbf w} \]</div>
+
+<p>Let \(v = y-a\), so that \(C=\frac{1}{2m}\sum_i v_i^2\). Differentiating \(v\) is easy: \(y\) is a
+constant of the data, so only \(-a\) survives.</p>
+
+<ol class="derivation">
+  <li>
+    <strong>The inner variable.</strong>
+    <div class="eq">\[ \frac{\partial v}{\partial \mathbf w}=-\frac{\partial a}{\partial \mathbf w} \]</div>
+    <span class="why">The whole effect of introducing \(v\) is to park a minus sign, which we carry along.</span>
+  </li>
+  <li>
+    <strong>Differentiate the sum term by term.</strong> The derivative of a sum is the sum of the
+    derivatives, and \(\frac{1}{2m}\) is a constant that comes straight out:
+    <div class="eq">\[ \frac{\partial C}{\partial \mathbf w}=\frac{1}{2m}\sum_{i=1}^{m}\frac{\partial}{\partial \mathbf w}\,v_i^2 \]</div>
+  </li>
+  <li>
+    <strong>Power rule, one more chain link.</strong> \(v^2\) is an outer function of \(v\):
+    <div class="eq">\[ \frac{\partial v^2}{\partial \mathbf w}=\frac{\partial v^2}{\partial v}\,\frac{\partial v}{\partial \mathbf w}=2v\cdot\Bigl(-\frac{\partial a}{\partial \mathbf w}\Bigr) \]</div>
+  </li>
+  <li>
+    <strong>The 2 cancels the \(\tfrac12\).</strong> This is the whole reason the \(\tfrac12\) was put
+    there in chapter 3:
+    <div class="eq">\[ \frac{\partial C}{\partial \mathbf w}=-\frac{1}{m}\sum_{i=1}^{m}v_i\,\frac{\partial a^{(i)}}{\partial \mathbf w} \]</div>
+  </li>
+  <li>
+    <strong>Substitute the piecewise activation derivative.</strong> Negating a piecewise function
+    means negating each branch — the branches are alternatives, not a computation, so nothing subtle
+    happens:
+    <div class="eq">\[ \frac{\partial C}{\partial \mathbf w}=\begin{cases}\mathbf 0\T,& z\le 0\\[4pt] -\dfrac1m\displaystyle\sum_{i=1}^{m}\bigl(y^{(i)}-a^{(i)}\bigr)\,\mathbf x^{(i)\mathsf T},& z>0\end{cases} \]</div>
+    <span class="why">\(v\) times a row of zeros is still a row of zeros, so the dead branch stays dead.</span>
+  </li>
+  <li>
+    <strong>Expand \(a\) — and watch the \(\max\) disappear.</strong> In the live branch
+    \(a=\max(0,\mathbf w\T\mathbf x+b)\), but that branch is reached <em>only when</em>
+    \(\mathbf w\T\mathbf x+b>0\), so the \(\max\) can never select the 0. It is redundant and we drop it:
+    <div class="eq">\[ \frac{\partial C}{\partial \mathbf w}=-\frac1m\sum_{i=1}^{m}\bigl(y^{(i)}-(\mathbf w\T\mathbf x^{(i)}+b)\bigr)\mathbf x^{(i)\mathsf T} \]</div>
+    <span class="why">A nice piece of bookkeeping: the piecewise wrapper has already done the job the \(\max\) was doing.</span>
+  </li>
+  <li>
+    <strong>Absorb the minus sign by flipping the subtraction.</strong>
+    <div class="eq">\[ \frac{\partial C}{\partial \mathbf w}=\frac1m\sum_{i=1}^{m}\bigl(\underbrace{\mathbf w\T\mathbf x^{(i)}+b-y^{(i)}}_{\text{prediction}\;-\;\text{target}}\bigr)\mathbf x^{(i)\mathsf T} \]</div>
+  </li>
+</ol>
+
+<h2 id="error-term">The error term</h2>
+
+<p>That bracket has a name. It is the <strong>error</strong> on example \(i\): what the network said
+minus what it should have said.</p>
+
+<div class="eq headline" data-n="4.8">\[ e^{(i)}=a^{(i)}-y^{(i)} \]</div>
+
+<p>Substituting it, both parameter gradients become short enough to memorise. Running the identical
+derivation for \(b\) — shorter, since \(\partial a/\partial b\) is 1 rather than \(\mathbf x\T\) —
+gives the pair:</p>
+
+<div class="eq headline" data-n="4.9">\[ \frac{\partial C}{\partial \mathbf w}=\frac1m\sum_{i=1}^{m}e^{(i)}\,\mathbf x^{(i)\mathsf T}, \qquad\qquad \frac{\partial C}{\partial b}=\frac1m\sum_{i=1}^{m}e^{(i)} \]</div>
+
+<p>Both hold on the live branch; both are zero when the neuron is off.</p>
+
+<div class="note key">
+  <span class="label">Read these two lines carefully</span>
+  <p>The bias gradient is <strong>the average error, bare</strong>. Nothing multiplies it, because
+  the bias contributes to \(z\) with coefficient 1 regardless of any input.</p>
+  <p>The weight gradient is <strong>the average error scaled by the corresponding input</strong>.
+  Weight \(i\) reaches the cost only through the product \(w_ix_i\), so its influence is proportional
+  to \(x_i\).</p>
+  <p>That asymmetry is not an artefact of this toy model. Chapter 6 shows it is the general case:
+  BP3 and BP4 differ by exactly one factor of \(a^{l-1}\).</p>
+</div>
+
+<h2 id="the-gradient">Assembling the gradient</h2>
+
+<p>Take the simplest case, \(m=1\), so the sum and the \(1/m\) both vanish. With five weights the
+gradient is five numbers, conventionally written as a column because that is what gradient descent
+consumes:</p>
+
+<div class="eq" data-n="4.10">\[ \nabla_{\mathbf w}C=e\begin{bmatrix}x_1\\ x_2\\ x_3\\ x_4\\ x_5\end{bmatrix}=\begin{bmatrix}e\,x_1\\ e\,x_2\\ e\,x_3\\ e\,x_4\\ e\,x_5\end{bmatrix} \]</div>
+
+<div class="note pitfall">
+  <span class="label">Row or column?</span>
+  <p>Differentiating a scalar with respect to an \(n\)-vector naturally produces a \(1\times n\) row —
+  it is a Jacobian with one row. Gradient descent wants an \(n\times1\) column, so that
+  \(\mathbf w-\eta\nabla C\) is a legal element-wise subtraction.</p>
+  <p>The two differ by a transpose and by nothing else. Every library and every textbook picks one
+  layout and sticks with it; mixing them mid-derivation is the single most common source of
+  shape errors in this material. This guide writes \(\partial C/\partial\mathbf w\) as a row and
+  \(\nabla_{\mathbf w}C\) as a column, and transposes deliberately when crossing between them.</p>
+</div>
+
+<p>With \(m\) examples, entry \(i\) of the gradient averages that weight's contribution across the
+whole training set:</p>
+
+<div class="eq" data-n="4.11">\[ \bigl(\nabla_{\mathbf w}C\bigr)_i=\frac{1}{m}\Bigl(e^{(1)}x^{(1)}_i+e^{(2)}x^{(2)}_i+\cdots+e^{(m)}x^{(m)}_i\Bigr) \]</div>
+
+<p>Each entry loses its attachment to any particular example and becomes a single general number: if
+you nudge \(w_i\) a little, this is the ratio by which the cost moves, averaged over everything the
+model has seen.</p>
+
+<h2 id="consequences">Two consequences worth carrying forward</h2>
+
+<h3>The input decides how much a weight matters</h3>
+
+<p>Every entry of \(\nabla_\mathbf{w}C\) carries a factor of its own input. Given the same error,
+a weight attached to \(x_i=100\) has a gradient a hundred times larger than one attached to
+\(x_i=1\).</p>
+
+<p>Two things follow. A weight attached to a large input gives more improvement per unit of change —
+more movement in the cost for the same step. And a weight attached to a near-zero input is
+effectively frozen: its gradient is tiny, so gradient descent barely touches it. Training does not
+distribute effort evenly across parameters; it concentrates it where the inputs are large.</p>
+
+<div class="note beyond">
+  <span class="label">Why this makes you normalise your features</span>
+  <p>Suppose one input is a house price in the hundreds of thousands and another is a number of
+  bedrooms between 1 and 5. Their weight gradients differ by five orders of magnitude, so any single
+  learning rate is simultaneously far too large for one and far too small for the other. The cost
+  surface becomes a long narrow valley and descent zig-zags down it.</p>
+  <p>Standardising inputs to comparable scale — subtract the mean, divide by the standard deviation —
+  is not a heuristic tidy-up. It is a direct response to the factor of \(x_i\) sitting in equation
+  4.9. The same reasoning motivates batch normalisation, which applies the idea to a network's
+  internal activations rather than only its inputs.</p>
+</div>
+
+<!-- Visual Diagram: Feature Scaling Ravine vs Sphere -->
+<div class="diagram-box">
+  <svg viewBox="0 0 680 180" width="100%" role="img" aria-label="Feature scaling geometry: unscaled elongated canyon with oscillating descent path versus normalized isotropic circular bowl with direct descent">
+    <!-- Unscaled Ravine (Left) -->
+    <text x="175" y="25" text-anchor="middle" font-size="12" font-weight="700" fill="var(--rose)" font-family="Inter, sans-serif">Unscaled Inputs: Steep Canyon Ravine</text>
+    <ellipse cx="175" cy="105" rx="140" ry="25" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <ellipse cx="175" cy="105" rx="90" ry="15" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <ellipse cx="175" cy="105" rx="40" ry="6" fill="var(--rose-soft)" stroke="var(--rose)" stroke-width="1.5"/>
+
+    <!-- Oscillating path -->
+    <polyline points="60,85 110,125 130,90 155,118 168,96 175,105" fill="none" stroke="var(--rose)" stroke-width="2.5"/>
+    <circle cx="60" cy="85" r="4" fill="var(--rose)"/>
+    <text x="175" y="155" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="Inter, sans-serif">Descent bounces violently across steep canyon walls</text>
+
+    <!-- Scaled Bowl (Right) -->
+    <text x="505" y="25" text-anchor="middle" font-size="12" font-weight="700" fill="var(--emerald)" font-family="Inter, sans-serif">Normalized Inputs: Symmetrical Circular Bowl</text>
+    <circle cx="505" cy="105" r="55" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <circle cx="505" cy="105" r="35" fill="none" stroke="var(--rule-firm)" stroke-width="1.5"/>
+    <circle cx="505" cy="105" r="15" fill="var(--emerald-soft)" stroke="var(--emerald)" stroke-width="1.5"/>
+
+    <!-- Direct path -->
+    <line x1="455" y1="65" x2="503" y2="103" stroke="var(--emerald)" stroke-width="2.5"/>
+    <polygon points="505,105 497,99 501,105" fill="var(--emerald)"/>
+    <circle cx="455" cy="65" r="4" fill="var(--emerald)"/>
+    <text x="505" y="155" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="Inter, sans-serif">Descent marches smoothly and directly to the minimum</text>
+  </svg>
+  <div class="diagram-caption">
+    <b>Figure 4.3:</b> The geometry of feature scaling. Disproportionate input magnitudes stretch the loss landscape into a razor-thin canyon. Normalization creates spherical contours where \(-\nabla C\) points directly at the optimum.
+  </div>
+</div>
+
+<h3>A dead neuron stays dead</h3>
+
+<p>The zero branch of equation 4.6 zeroes every parameter gradient at once. If \(\mathbf w\T\mathbf
+x+b\le0\) for every example in the training set, this neuron receives no gradient on any step, and
+since its parameters never change it will produce the same negative pre-activations forever. It is
+not learning slowly; it has left the model.</p>
+
+<h2 id="verify">Verifying a gradient you derived by hand</h2>
+
+<p>When you implement any of this, check it numerically before trusting it. The definition of a
+partial derivative gives the test directly — the symmetric difference quotient:</p>
+
+<div class="eq" data-n="4.12">\[ \frac{\partial C}{\partial w_i}\;\approx\;\frac{C(w_i+\varepsilon)-C(w_i-\varepsilon)}{2\varepsilon}, \qquad \varepsilon \approx 10^{-5} \]</div>
+
+<p>Perturb one parameter, recompute the cost twice, compare against your analytic gradient. They
+should agree to several decimal places. It costs two forward passes per parameter, which is far too
+slow for training but ideal for a test suite — and it catches a transposed matrix or a dropped
+\(\phi'\) immediately, which reading the code rarely does.</p>
+
+<div class="note key">
+  <span class="label">Where we are</span>
+  <p>We have the complete gradient of a one-neuron network. Chapter 5 turns gradients into an
+  optimisation algorithm. Chapter 6 asks what changes when the neuron is buried four layers deep —
+  and the answer turns out to be remarkably little.</p>
+</div>
+
+<h2 id="self-check">Self-check</h2>
+
+<details class="check">
+  <summary>Why does splitting \(\mathbf w\T\mathbf x\) into a Hadamard product and a sum help?</summary>
+  <div class="answer">
+    <p>Because the dot product is not in the chapter 2 toolkit but its two pieces are. We know
+    \(\partial(\mathbf w\odot\mathbf x)/\partial\mathbf w=\operatorname{diag}(\mathbf x)\) and
+    \(\partial\operatorname{sum}/\partial\mathbf h=\mathbf 1\T\), so the chain rule handles the
+    composition. Their product \(\mathbf 1\T\operatorname{diag}(\mathbf x)=\mathbf x\T\) is the
+    result we wanted, now derived rather than asserted.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>A neuron has \(z=-4\). What is \(\partial C/\partial w_3\)?</summary>
+  <div class="answer">
+    <p>Zero — and so is every other parameter gradient on this neuron for this example. ReLU's
+    derivative is 0 for negative \(z\), and that single scalar multiplies the whole row
+    \(\mathbf x\T\), annihilating all \(n\) entries at once.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why does \(\max(0,\cdot)\) drop out of the live branch in step 6?</summary>
+  <div class="answer">
+    <p>Because the branch condition and the \(\max\) test the same thing. That branch is only
+    selected when \(\mathbf w\T\mathbf x+b&gt;0\), and under that condition
+    \(\max(0,\mathbf w\T\mathbf x+b)=\mathbf w\T\mathbf x+b\). The piecewise wrapper has already made
+    the decision the \(\max\) would have made, so keeping both is redundant.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Two weights see inputs \(x_1=0.01\) and \(x_2=50\) and share an error \(e=2\). Compare their gradients and say what that means for training.</summary>
+  <div class="answer">
+    <p>\(\partial C/\partial w_1 = 0.02\) and \(\partial C/\partial w_2 = 100\) — a factor of 5000
+    apart from the same error. With a single learning rate \(\eta\), \(w_2\) takes enormous steps
+    while \(w_1\) barely moves, so the same step size cannot be appropriate for both.</p>
+    <p>The fix is to rescale the inputs so the factors are comparable. This is the argument for
+    feature normalisation in one line.</p>
+  </div>
+</details>
+
+<details class="check">
+  <summary>Why is \(\partial C/\partial b\) the bare error, with no input factor?</summary>
+  <div class="answer">
+    <p>Because \(\partial z/\partial b=1\) where \(\partial z/\partial \mathbf w=\mathbf x\T\). The
+    bias enters \(z=\mathbf w\T\mathbf x+b\) with coefficient 1 no matter what the inputs are, so
+    there is no input to scale it by. A weight's influence is mediated by its input; a bias's is not.</p>
+  </div>
+</details>
+
+</article>
+
+<nav class="pager">
+  <a class="prev" href="03-networks-as-equations.html"><span class="dir">&larr; Previous</span><span class="title">3. Neurons, layers, forward propagation</span></a>
+  <a class="next" href="05-gradient-descent.html"><span class="dir">Next &rarr;</span><span class="title">5. Gradient descent</span></a>
+</nav>
+</main>
+</div>
+
+<script src="../js/main.js?v=2.2"></script>
+</body>
+</html>

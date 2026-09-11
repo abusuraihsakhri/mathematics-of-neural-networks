@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mathematics of Neural Networks — Visual &amp; Interactive Study Guide</title>
+<meta name="description" content="A visual, intuitive, and interactive study guide to the complete mathematics of neural networks: Linear Algebra, Multivariable Calculus, Jacobians, Backpropagation, and Optimization Theory.">
+<meta property="og:title" content="Mathematics of Neural Networks — Visual &amp; Interactive Study Guide">
+<meta property="og:description" content="Master the mathematics of neural networks through physical intuition, visual diagrams, and 14 interactive simulators. Zero setup required.">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Mathematics of Neural Networks — Visual &amp; Interactive Study Guide">
+<meta name="twitter:description" content="Master the mathematics of neural networks through physical intuition, visual diagrams, and 14 interactive simulators. Zero setup required.">
+<script>try{var t=localStorage.getItem('nnmath-theme')||(matchMedia('(prefers-color-scheme:dark)').matches?'dark':'light');document.documentElement.dataset.theme=t;}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<link rel="stylesheet" href="css/style.css?v=2.2">
+<script>window.MathJax={tex:{inlineMath:[['\\(','\\)']],displayMath:[['\\[','\\]']],macros:{T:'^{\\mathsf{T}}'}},svg:{fontCache:'global'}};</script>
+<script defer src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="index.html">Mathematics of <span>Neural Networks</span></a>
+  <span class="crumb">A study guide</span>
+  <span class="spacer"></span>
+  <button class="icon-btn" id="theme-btn" aria-label="Toggle dark mode">&#9790;</button>
+</header>
+<div class="progress-track"><div id="progress"></div></div>
+
+<main class="landing">
+
+  <section class="hero">
+    <p class="kicker">Visual intuitions &middot; interactive simulators &middot; derivations in full</p>
+    <h1>The mathematics that makes a network learn.</h1>
+    <p class="standfirst">Deep learning does not rely on black-box heuristics. It is built upon three
+    foundational pillars of mathematics: <strong>Linear Algebra &amp; Geometry</strong> (matrix affine
+    mappings and spatial contractions), <strong>Multivariable Calculus &amp; Analysis</strong> (directional
+    gradients, Jacobians, and chain-rule error flows), and <strong>Optimization Theory</strong>
+    (loss surface geometry, learning rate stability criteria, and momentum physics). This visual guide
+    develops every principle from first intuition to full mathematical rigor.</p>
+    <div class="hero-actions">
+      <a class="btn primary" href="chapters/01-foundations.html">Start chapter 1 &rarr;</a>
+      <a class="btn" href="#pictorial-map">Visual Intuition Map &darr;</a>
+      <a class="btn" href="chapters/07-reference.html">Notation &amp; formula sheet</a>
+    </div>
+    <div class="facts">
+      <div><b>7</b>chapters</div>
+      <div><b>14</b>interactive simulators</div>
+      <div><b>3</b>mathematical pillars</div>
+      <div><b>0</b>build steps (zero setup)</div>
+    </div>
+  </section>
+
+  <!-- The Three Mathematical Pillars -->
+  <section class="panel" style="margin-bottom: 3.5rem; background: var(--surface);">
+    <div class="panel-head">
+      <h4>The Three Pillars of Neural Network Mathematics</h4>
+      <span class="hint">Beyond calculus: the unified mathematical foundation of deep learning</span>
+    </div>
+    <div class="panel-body">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 1.2rem; margin-top: 0.5rem;">
+        <div style="padding: 1.1rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper);">
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--accent); letter-spacing: 0.08em;">PILLAR I</span>
+          <h4 style="margin: 0.4rem 0 0.5rem; font-size: 1.05rem; font-family: var(--font-ui);">Linear Algebra &amp; Geometry</h4>
+          <p style="font-size: 0.88rem; color: var(--ink-soft); line-height: 1.55; margin: 0 0 0.6rem;">
+            Networks operate by geometrically stretching, rotating, shearing, and contracting coordinate spaces through matrix affine transformations \(z = W\mathbf{x} + \mathbf{b}\).
+          </p>
+          <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem; color: var(--ink-muted); font-family: var(--font-ui);">
+            <li>High-dimensional vector spaces &amp; dot products</li>
+            <li>Matrix-vector contractions &amp; dimension matching</li>
+            <li>Destination-first indexing without transpose bugs</li>
+          </ul>
+        </div>
+
+        <div style="padding: 1.1rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper);">
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--cyan); letter-spacing: 0.08em;">PILLAR II</span>
+          <h4 style="margin: 0.4rem 0 0.5rem; font-size: 1.05rem; font-family: var(--font-ui);">Multivariable Calculus &amp; Analysis</h4>
+          <p style="font-size: 0.88rem; color: var(--ink-soft); line-height: 1.55; margin: 0 0 0.6rem;">
+            Training requires computing exact partial sensitivity gradients across millions of interconnected parameters using the chain rule on directed computational graphs.
+          </p>
+          <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem; color: var(--ink-muted); font-family: var(--font-ui);">
+            <li>Jacobian matrices of non-linear vector functions</li>
+            <li>Error pull-back through transpose Jacobians (\(J^\top\))</li>
+            <li>The 4 master backpropagation equations (BP1–BP4)</li>
+          </ul>
+        </div>
+
+        <div style="padding: 1.1rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--paper);">
+          <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--emerald); letter-spacing: 0.08em;">PILLAR III</span>
+          <h4 style="margin: 0.4rem 0 0.5rem; font-size: 1.05rem; font-family: var(--font-ui);">Optimization &amp; Information Theory</h4>
+          <p style="font-size: 0.88rem; color: var(--ink-soft); line-height: 1.55; margin: 0 0 0.6rem;">
+            Gradients alone are not enough; we must navigate high-dimensional non-convex loss landscapes, avoid saddle traps, and guarantee numerical convergence.
+          </p>
+          <ul style="margin: 0; padding-left: 1.1rem; font-size: 0.8rem; color: var(--ink-muted); font-family: var(--font-ui);">
+            <li>Loss surface curvature &amp; condition numbers</li>
+            <li>Learning rate stability bounds (\(\eta &lt; 2/\lambda_{\max}\))</li>
+            <li>Momentum physics &amp; mini-batch stochastic noise</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Primer -->
+  <section class="panel" id="mini-net-widget" style="margin-bottom: 3.5rem;">
+    <div class="panel-head">
+      <h4>Interactive Primer: The 60-Second Neural Sandbox</h4>
+      <span class="hint">Adjust parameters, watch signals flow, and step gradient descent live</span>
+    </div>
+    <div class="panel-body">
+      <p style="font-size:0.95rem;color:var(--ink-soft);margin-bottom:1.1rem">
+        Before diving into the algebra, here is what a neural network actually does in physical terms:
+        it multiplies inputs by adjustable weights, adds a bias, passes the result through a non-linear gate,
+        and nudges its knobs until its error shrinks.
+      </p>
+
+      <div class="controls">
+        <label>Input x₁: <output id="mn-x1-val">1.0</output>
+          <input id="mn-x1" type="range" min="-3" max="3" step="0.5" value="1.0">
+        </label>
+        <label>Input x₂: <output id="mn-x2-val">2.0</output>
+          <input id="mn-x2" type="range" min="-3" max="3" step="0.5" value="2.0">
+        </label>
+        <label>Weight w₁: <output id="mn-w1-val">0.50</output>
+          <input id="mn-w1" type="range" min="-2" max="2" step="0.05" value="0.50">
+        </label>
+        <label>Weight w₂: <output id="mn-w2-val">-0.30</output>
+          <input id="mn-w2" type="range" min="-2" max="2" step="0.05" value="-0.30">
+        </label>
+        <label>Bias b: <output id="mn-b-val">0.10</output>
+          <input id="mn-b" type="range" min="-2" max="2" step="0.05" value="0.10">
+        </label>
+        <label>Target y: <output id="mn-y-val">1.0</output>
+          <input id="mn-y" type="range" min="0" max="2" step="0.1" value="1.0">
+        </label>
+        <label>Activation:
+          <select id="mn-act" style="border:1px solid var(--rule-firm);border-radius:6px;padding:0.25rem 0.5rem;background:var(--paper)">
+            <option value="relu">ReLU: max(0, z)</option>
+            <option value="sigmoid">Sigmoid: 1/(1+e⁻ᶻ)</option>
+          </select>
+        </label>
+        <label>Step Size &eta;:
+          <select id="mn-lr" style="border:1px solid var(--rule-firm);border-radius:6px;padding:0.25rem 0.5rem;background:var(--paper)">
+            <option value="0.2">0.2 (balanced)</option>
+            <option value="0.05">0.05 (careful)</option>
+            <option value="0.5">0.5 (aggressive)</option>
+          </select>
+        </label>
+      </div>
+
+      <div style="display:flex;gap:0.6rem;margin-bottom:1rem;flex-wrap:wrap">
+        <button class="btn primary" id="mn-step">Step 1 Gradient Descent Step</button>
+        <button class="btn" id="mn-reset">Reset Parameters</button>
+      </div>
+
+      <div id="mn-output"></div>
+    </div>
+  </section>
+
+  <!-- Master Visual Blueprint Diagram -->
+  <div class="diagram-box" style="margin-bottom: 3.5rem;">
+    <svg viewBox="0 0 760 170" width="100%" role="img" aria-label="Master Roadmap: Forward Pass to Backward Pass Loop">
+      <!-- Blocks -->
+      <rect x="20" y="45" width="130" height="70" rx="10" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>
+      <text x="85" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="var(--accent)" font-family="Inter, sans-serif">1. Inputs x</text>
+      <text x="85" y="95" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="Inter, sans-serif">Training data</text>
+
+      <path d="M 150 80 L 195 80" stroke="var(--rule-firm)" stroke-width="2" marker-end="url(#arrow)"/>
+
+      <rect x="200" y="45" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--rule-firm)" stroke-width="2"/>
+      <text x="275" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="var(--ink)" font-family="Inter, sans-serif">2. Forward Pass</text>
+      <text x="275" y="95" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="ui-monospace, monospace">z = Wx+b, a = &phi;(z)</text>
+
+      <path d="M 350 80 L 395 80" stroke="var(--rule-firm)" stroke-width="2"/>
+
+      <rect x="400" y="45" width="140" height="70" rx="10" fill="var(--surface)" stroke="var(--rose)" stroke-width="2"/>
+      <text x="470" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="var(--rose)" font-family="Inter, sans-serif">3. Cost C(w,b)</text>
+      <text x="470" y="95" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="ui-monospace, monospace">Loss: &frac12;||y - &ycirc;||&sup2;</text>
+
+      <path d="M 540 80 L 585 80" stroke="var(--rule-firm)" stroke-width="2"/>
+
+      <rect x="590" y="45" width="150" height="70" rx="10" fill="var(--surface)" stroke="var(--emerald)" stroke-width="2"/>
+      <text x="665" y="75" text-anchor="middle" font-size="13" font-weight="700" fill="var(--emerald)" font-family="Inter, sans-serif">4. Backprop</text>
+      <text x="665" y="95" text-anchor="middle" font-size="11" fill="var(--ink-muted)" font-family="ui-monospace, monospace">&nabla;C &amp; &delta; error flow</text>
+
+      <!-- Feedback loop backward -->
+      <path d="M 665 115 L 665 145 L 275 145 L 275 115" fill="none" stroke="var(--accent)" stroke-width="2" stroke-dasharray="5 4"/>
+      <text x="470" y="140" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)" font-family="Inter, sans-serif">5. Gradient Descent Update: &theta; &larr; &theta; - &eta;&nabla;C</text>
+    </svg>
+    <div class="diagram-caption">
+      <b>The Closed-Loop Feedback Cycle of Learning:</b> Information flows forward to produce predictions; error signals flow backward to compute sensitivities; gradient descent nudges parameters to reduce cost.
+    </div>
+  </div>
+
+  <!-- Master Pictorial Intuition Map -->
+  <section class="panel" id="pictorial-map" style="margin-bottom: 3.5rem; overflow: hidden; border: 1px solid var(--rule-firm);">
+    <div class="panel-head" style="background: var(--surface-2);">
+      <h4>🖼️ Pictorial Map: Physical Mechanics of Neural Mathematics</h4>
+      <span class="hint">Every mathematical equation has a tangible physical counterpart</span>
+    </div>
+    <div class="panel-body" style="padding: 1.2rem;">
+      <div style="border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow); border: 1px solid var(--rule); margin-bottom: 1.2rem;">
+        <img src="assets/physical-intuition-map.jpg" alt="Physical Intuition of Neural Network Mathematics: Neural Network Flow, Mechanical Gears, 3D Loss Surface, and Audio Mixing Board" style="width: 100%; height: auto; display: block;">
+      </div>
+      <div class="diagram-caption" style="font-size: 0.95rem; line-height: 1.6;">
+        <b>The Big Picture in One Diagram:</b>
+        A neural network is an <strong>audio mixing console</strong> balancing inputs with volume knobs (weights) and baseline hum (bias);
+        computational forward &amp; backward passes operate as <strong>interlocking mechanical gears</strong> where intermediate transmission ratios cancel out via the Chain Rule;
+        and parameter optimization is a <strong>heavy marble rolling down a 3D loss surface</strong> governed by gravitational slope (\(-\nabla C\)), viscous friction, and momentum.
+      </div>
+    </div>
+  </section>
+
+  <!-- Interactive Physical Metaphors Explorer -->
+  <section class="panel" id="metaphors-explorer" style="margin-bottom: 3.5rem;">
+    <div class="panel-head">
+      <h4>Interactive Metaphor Explorer: Touch the Physical Mechanics</h4>
+      <span class="hint">Select a physical metaphor below to see and interact with how mathematics maps to reality</span>
+    </div>
+    <div class="panel-body">
+
+      <!-- Navigation Tabs -->
+      <div class="metaphor-tabs" id="metaphor-tab-bar">
+        <button type="button" class="metaphor-tab active" onclick="switchMetaphorTab('meta-audio', this)" data-target="meta-audio">🎛️ Audio Mixing Console</button>
+        <button type="button" class="metaphor-tab" onclick="switchMetaphorTab('meta-compass', this)" data-target="meta-compass">🧭 Mountain &amp; Compass</button>
+        <button type="button" class="metaphor-tab" onclick="switchMetaphorTab('meta-gears', this)" data-target="meta-gears">⚙️ Mechanical Gear Train</button>
+        <button type="button" class="metaphor-tab" onclick="switchMetaphorTab('meta-valve', this)" data-target="meta-valve">💧 Hydraulic Pressure Valve</button>
+        <button type="button" class="metaphor-tab" onclick="switchMetaphorTab('meta-marble', this)" data-target="meta-marble">🎳 Rolling Marble in Honey</button>
+        <button type="button" class="metaphor-tab" onclick="switchMetaphorTab('meta-megaphone', this)" data-target="meta-megaphone">📣 Corporate Megaphone</button>
+      </div>
+
+      <!-- Tab 1: Audio Console -->
+      <div class="metaphor-pane" id="meta-audio" style="display: block;">
+        <div style="background: var(--surface-2); padding: 1.25rem; border-radius: var(--radius); border-left: 4px solid var(--accent); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--accent); letter-spacing: 0.08em;">LINEAR ALGEBRA &middot; WEIGHTS &amp; BIAS</span>
+              <h3 style="margin: 0.2rem 0; font-size: 1.2rem;">The Audio Mixing Console</h3>
+            </div>
+            <a class="btn primary" href="chapters/01-foundations.html#audio-mixer-widget" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">Open Full Chapter 1 Mixer &rarr;</a>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 0.8rem;">
+            Imagine you are at an audio mixing console. Each incoming instrument track (input feature \(x_i\)) has an adjustable volume fader (weight \(w_i\)).
+            Pushing a fader up boosts the signal; pulling it down attenuates noise. The master bias knob (\(b\)) sets the room's baseline ambient noise floor.
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.86rem; background: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--rule); margin-bottom: 1rem;">
+            \(z = \mathbf{w}^\top \mathbf{x} + b = w_1 x_1 + w_2 x_2 + b\)
+          </div>
+
+          <!-- Live Interactive Mixer Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: center; background: var(--paper); padding: 1rem; border-radius: 8px; border: 1px solid var(--rule);">
+            <div class="controls" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <label>Fader 1 (w₁ for Guitar x₁=2.0): <output id="meta-w1-val">1.20</output>
+                <input id="meta-w1" type="range" min="-2" max="2" step="0.1" value="1.20" oninput="updateMetaAudio()">
+              </label>
+              <label>Fader 2 (w₂ for Vocals x₂=1.0): <output id="meta-w2-val">-0.80</output>
+                <input id="meta-w2" type="range" min="-2" max="2" step="0.1" value="-0.80" oninput="updateMetaAudio()">
+              </label>
+              <label>Master Bias Knob (Ambient Hum b): <output id="meta-b-val">0.30</output>
+                <input id="meta-b" type="range" min="-2" max="2" step="0.1" value="0.30" oninput="updateMetaAudio()">
+              </label>
+            </div>
+            <div style="text-align: center;">
+              <svg id="meta-audio-svg" viewBox="0 0 220 130" width="100%" height="130">
+                <rect x="15" y="15" width="190" height="100" rx="8" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+                <!-- Track 1 -->
+                <line x1="45" y1="30" x2="45" y2="100" stroke="var(--rule-firm)" stroke-width="3" stroke-linecap="round"/>
+                <rect id="meta-fader-1" x="37" y="45" width="16" height="12" rx="3" fill="var(--accent)"/>
+                <text x="45" y="114" text-anchor="middle" font-size="9" fill="var(--ink-muted)" font-family="var(--font-mono)">w₁</text>
+                <!-- Track 2 -->
+                <line x1="95" y1="30" x2="95" y2="100" stroke="var(--rule-firm)" stroke-width="3" stroke-linecap="round"/>
+                <rect id="meta-fader-2" x="87" y="75" width="16" height="12" rx="3" fill="var(--accent)"/>
+                <text x="95" y="114" text-anchor="middle" font-size="9" fill="var(--ink-muted)" font-family="var(--font-mono)">w₂</text>
+                <!-- Bias Knob -->
+                <line x1="145" y1="30" x2="145" y2="100" stroke="var(--rule-firm)" stroke-width="3" stroke-linecap="round"/>
+                <rect id="meta-fader-b" x="137" y="60" width="16" height="12" rx="3" fill="var(--amber)"/>
+                <text x="145" y="114" text-anchor="middle" font-size="9" fill="var(--ink-muted)" font-family="var(--font-mono)">bias b</text>
+                <!-- Mini VU meter -->
+                <rect x="180" y="30" width="12" height="70" rx="2" fill="var(--surface)" stroke="var(--rule)" stroke-width="1"/>
+                <rect id="meta-vu-bar" x="182" y="55" width="8" height="43" rx="1" fill="var(--emerald)"/>
+                <text x="186" y="114" text-anchor="middle" font-size="8" fill="var(--ink-muted)" font-family="var(--font-mono)">VU</text>
+              </svg>
+              <div id="meta-audio-out" style="font-family: var(--font-mono); font-size: 0.88rem; margin-top: 0.4rem;">
+                Acoustic Sum: <b>z = 1.90</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 2: Mountain Compass -->
+      <div class="metaphor-pane" id="meta-compass" style="display: none;">
+        <div style="background: var(--surface-2); padding: 1.25rem; border-radius: var(--radius); border-left: 4px solid var(--rose); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--rose); letter-spacing: 0.08em;">MULTIVARIABLE CALCULUS &middot; GRADIENTS</span>
+              <h3 style="margin: 0.2rem 0; font-size: 1.2rem;">The Mountain Hiker &amp; 3D Compass</h3>
+            </div>
+            <a class="btn primary" href="chapters/02-matrix-calculus.html#ch2-contour-canvas" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">Open Full Chapter 2 Vector Field &rarr;</a>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 0.8rem;">
+            You are lost on a foggy mountainside where you cannot see the summit or the camp. The gradient vector \(\nabla f(\mathbf{x})\) is a magical compass needle pointing directly uphill along the steepest slope.
+            To reach the valley camp without tumbling over cliffs, you walk in the opposite direction: \(-\nabla f\).
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.86rem; background: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--rule); margin-bottom: 1rem;">
+            \(\nabla f(\mathbf{x}) = \begin{bmatrix} \partial f/\partial x_1 \\ \partial f/\partial x_2 \end{bmatrix}, \quad \Delta \mathbf{x} = -\eta \nabla f(\mathbf{x})\)
+          </div>
+
+          <!-- Live Interactive Compass Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: center; background: var(--paper); padding: 1rem; border-radius: 8px; border: 1px solid var(--rule);">
+            <div class="controls" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <label>Hiker East-West Position (x₁): <output id="meta-x1-val">1.5</output>
+                <input id="meta-x1" type="range" min="-3" max="3" step="0.2" value="1.5" oninput="updateMetaCompass()">
+              </label>
+              <label>Hiker North-South Position (x₂): <output id="meta-x2-val">-1.0</output>
+                <input id="meta-x2" type="range" min="-3" max="3" step="0.2" value="-1.0" oninput="updateMetaCompass()">
+              </label>
+              <div style="font-size: 0.82rem; color: var(--ink-muted); line-height: 1.5; margin-top: 0.2rem;">
+                Terrain: \(f(x_1, x_2) = x_1^2 + 2x_2^2\). Move the sliders to drag the hiker and watch the compass rotate!
+              </div>
+            </div>
+            <div style="text-align: center;">
+              <svg id="meta-compass-svg" viewBox="0 0 200 130" width="100%" height="130">
+                <circle cx="100" cy="65" r="50" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="1.5"/>
+                <ellipse cx="100" cy="65" rx="35" ry="20" fill="none" stroke="var(--rule)" stroke-width="1" stroke-dasharray="3 3"/>
+                <!-- Dial ticks -->
+                <text x="100" y="24" text-anchor="middle" font-size="8" font-weight="700" fill="var(--ink-muted)">N</text>
+                <text x="100" y="112" text-anchor="middle" font-size="8" font-weight="700" fill="var(--ink-muted)">S</text>
+                <text x="145" y="68" text-anchor="middle" font-size="8" font-weight="700" fill="var(--ink-muted)">E</text>
+                <text x="55" y="68" text-anchor="middle" font-size="8" font-weight="700" fill="var(--ink-muted)">W</text>
+                <!-- Needles -->
+                <g id="meta-compass-needle" transform="rotate(-33, 100, 65)">
+                  <line x1="100" y1="65" x2="100" y2="28" stroke="var(--rose)" stroke-width="3.5" stroke-linecap="round"/>
+                  <polygon points="100,22 96,30 104,30" fill="var(--rose)"/>
+                  <line x1="100" y1="65" x2="100" y2="102" stroke="var(--emerald)" stroke-width="3.5" stroke-linecap="round"/>
+                  <polygon points="100,108 96,100 104,100" fill="var(--emerald)"/>
+                  <circle cx="100" cy="65" r="5" fill="var(--ink)"/>
+                </g>
+              </svg>
+              <div id="meta-compass-out" style="font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.4rem;">
+                <span style="color:var(--rose)">▲ ∇f = [3.0, -4.0]</span> | <span style="color:var(--emerald)">▼ -∇f = [-3.0, +4.0]</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 3: Mechanical Gears -->
+      <div class="metaphor-pane" id="meta-gears" style="display: none;">
+        <div style="background: var(--surface-2); padding: 1.25rem; border-radius: var(--radius); border-left: 4px solid var(--cyan); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--cyan); letter-spacing: 0.08em;">CALCULUS ANALYSIS &middot; THE CHAIN RULE</span>
+              <h3 style="margin: 0.2rem 0; font-size: 1.2rem;">Interlocking Mechanical Gears</h3>
+            </div>
+            <a class="btn primary" href="chapters/02-matrix-calculus.html#gears-canvas" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">Open Full Chapter 2 Gear Simulator &rarr;</a>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 0.8rem;">
+            When Gear A turns Gear B, and Gear B turns Gear C, the overall transmission ratio of C to A is the product of consecutive tooth ratios.
+            The intermediate Gear B's tooth count appears in both the denominator of Link 1 and the numerator of Link 2, cancelling out completely!
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.86rem; background: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--rule); margin-bottom: 1rem;">
+            \(\frac{dz}{dx} = \frac{dz}{dy} \cdot \frac{dy}{dx} = \left(-\frac{N_B}{N_C}\right) \cdot \left(-\frac{N_A}{N_B}\right) = +\frac{N_A}{N_C}\)
+          </div>
+
+          <!-- Live Interactive Gear Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: center; background: var(--paper); padding: 1rem; border-radius: 8px; border: 1px solid var(--rule);">
+            <div class="controls" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <label>Gear A Teeth (Input x): <output id="meta-na-val">12</output>
+                <input id="meta-na" type="range" min="8" max="24" step="2" value="12" oninput="updateMetaGears()">
+              </label>
+              <label>Gear B Teeth (Middle y - Cancels Out): <output id="meta-nb-val">24</output>
+                <input id="meta-nb" type="range" min="12" max="48" step="2" value="24" oninput="updateMetaGears()">
+              </label>
+              <label>Gear C Teeth (Output z): <output id="meta-nc-val">16</output>
+                <input id="meta-nc" type="range" min="8" max="32" step="2" value="16" oninput="updateMetaGears()">
+              </label>
+            </div>
+            <div style="text-align: center;">
+              <svg id="meta-gears-svg" viewBox="0 0 220 130" width="100%" height="130">
+                <!-- Gear A -->
+                <circle id="meta-gear-a" cx="45" cy="65" r="24" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2.5" stroke-dasharray="5 3"/>
+                <circle cx="45" cy="65" r="5" fill="var(--accent)"/>
+                <text x="45" y="69" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">A</text>
+                <!-- Gear B -->
+                <circle id="meta-gear-b" cx="105" cy="65" r="32" fill="var(--surface-2)" stroke="var(--cyan)" stroke-width="2.5" stroke-dasharray="5 3"/>
+                <circle cx="105" cy="65" r="5" fill="var(--cyan)"/>
+                <text x="105" y="69" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">B</text>
+                <!-- Gear C -->
+                <circle id="meta-gear-c" cx="170" cy="65" r="28" fill="var(--surface-2)" stroke="var(--emerald)" stroke-width="2.5" stroke-dasharray="5 3"/>
+                <circle cx="170" cy="65" r="5" fill="var(--emerald)"/>
+                <text x="170" y="69" text-anchor="middle" font-size="9" fill="#fff" font-weight="700">C</text>
+              </svg>
+              <div id="meta-gears-out" style="font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.4rem;">
+                Ratio: <b>dz/dx = +12/16 = +0.750</b> (B cancelled!)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 4: Hydraulic Valve -->
+      <div class="metaphor-pane" id="meta-valve" style="display: none;">
+        <div style="background: var(--surface-2); padding: 1.25rem; border-radius: var(--radius); border-left: 4px solid var(--emerald); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--emerald); letter-spacing: 0.08em;">NON-LINEARITIES &middot; ACTIVATION GATES</span>
+              <h3 style="margin: 0.2rem 0; font-size: 1.2rem;">Hydraulic Pressure Relief Valve</h3>
+            </div>
+            <a class="btn primary" href="chapters/03-networks-as-equations.html#act-canvas" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">Open Full Chapter 3 Valve Simulator &rarr;</a>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 0.8rem;">
+            Water pressure accumulates in a pipe. A spring-loaded valve keeps the outlet completely shut while pressure \(z \le 0\).
+            The instant pressure exceeds the threshold, the gate flies open and fluid discharges with derivative 1 (ReLU).
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.86rem; background: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--rule); margin-bottom: 1rem;">
+            \(\phi(z) = \max(0, z) \implies \phi'(z) = 1 \text{ if } z &gt; 0 \text{ else } 0\)
+          </div>
+
+          <!-- Live Interactive Valve Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: center; background: var(--paper); padding: 1rem; border-radius: 8px; border: 1px solid var(--rule);">
+            <div class="controls" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <label>Chamber Water Pressure (z): <output id="meta-valve-z-val">1.5</output>
+                <input id="meta-valve-z" type="range" min="-3" max="3" step="0.2" value="1.5" oninput="updateMetaValve()">
+              </label>
+              <label>Valve Gate Type:
+                <select id="meta-valve-type" onchange="updateMetaValve()" style="border:1px solid var(--rule-firm);border-radius:6px;padding:0.3rem 0.5rem;background:var(--paper)">
+                  <option value="relu">ReLU: max(0, z)</option>
+                  <option value="sigmoid">Sigmoid: 1/(1+e⁻ᶻ)</option>
+                </select>
+              </label>
+            </div>
+            <div style="text-align: center;">
+              <svg id="meta-valve-svg" viewBox="0 0 220 130" width="100%" height="130">
+                <rect x="20" y="45" width="180" height="40" rx="6" fill="var(--surface-2)" stroke="var(--rule-firm)" stroke-width="2"/>
+                <rect id="meta-water-flow" x="22" y="48" width="80" height="34" fill="var(--cyan)" opacity="0.5"/>
+                <!-- Spring Valve Gate -->
+                <line id="meta-gate-line" x1="105" y1="35" x2="105" y2="70" stroke="var(--emerald)" stroke-width="5" stroke-linecap="round"/>
+                <path d="M 105,35 Q 118,22 105,10" fill="none" stroke="var(--amber)" stroke-width="2"/>
+                <text id="meta-valve-text" x="155" y="70" text-anchor="middle" font-size="10" font-weight="600" fill="var(--emerald)">OPEN (Flow &gt; 0)</text>
+              </svg>
+              <div id="meta-valve-out" style="font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.4rem;">
+                Discharged Flow: <b>a = 1.500</b> | Local Slope: <b>&phi;'(z) = 1.0</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 5: Rolling Marble -->
+      <div class="metaphor-pane" id="meta-marble" style="display: none;">
+        <div style="background: var(--surface-2); padding: 1.25rem; border-radius: var(--radius); border-left: 4px solid var(--amber); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--amber); letter-spacing: 0.08em;">OPTIMIZATION &middot; MOMENTUM &amp; NOISE</span>
+              <h3 style="margin: 0.2rem 0; font-size: 1.2rem;">Rolling Marble in Viscous Honey</h3>
+            </div>
+            <a class="btn primary" href="chapters/05-gradient-descent.html#loss-arena-canvas" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">Open Full Chapter 5 Physics Arena &rarr;</a>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 0.8rem;">
+            Optimization is like placing a heavy marble inside a bowl coated with warm honey. Gravity pulls it downhill (\(-\nabla C\)), viscosity dampens oscillation (\(\beta\)),
+            and mini-batch stochastic tremors kick it out of shallow local dips toward the global basin!
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.86rem; background: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--rule); margin-bottom: 1rem;">
+            \(\mathbf{v}_{t+1} = \beta \mathbf{v}_t - \eta \nabla C(\theta_t), \quad \theta_{t+1} = \theta_t + \mathbf{v}_{t+1}\)
+          </div>
+
+          <!-- Live Interactive Marble Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: center; background: var(--paper); padding: 1rem; border-radius: 8px; border: 1px solid var(--rule);">
+            <div class="controls" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <label>Downhill Slope Gradient (-∇C): <output id="meta-grad-val">-1.50</output>
+                <input id="meta-grad" type="range" min="-3" max="3" step="0.2" value="-1.50" oninput="updateMetaMarble()">
+              </label>
+              <label>Viscosity Friction / Momentum (β): <output id="meta-mom-val">0.80</output>
+                <input id="meta-mom" type="range" min="0" max="0.95" step="0.05" value="0.80" oninput="updateMetaMarble()">
+              </label>
+              <div style="display: flex; gap: 0.5rem; margin-top: 0.3rem;">
+                <button type="button" class="btn" style="padding: 0.35rem 0.7rem; font-size: 0.8rem;" onclick="stepMetaMarble()">Roll 1 Step &rarr;</button>
+                <button type="button" class="btn" style="padding: 0.35rem 0.7rem; font-size: 0.8rem;" onclick="shakeMetaMarble()">💥 Mini-batch Kick</button>
+              </div>
+            </div>
+            <div style="text-align: center;">
+              <svg id="meta-marble-svg" viewBox="0 0 220 130" width="100%" height="130">
+                <path d="M 20,40 Q 110,125 200,40" fill="none" stroke="var(--rule-firm)" stroke-width="2.5"/>
+                <path d="M 40,65 Q 110,115 180,65" fill="var(--amber-soft)" opacity="0.6"/>
+                <!-- Marble -->
+                <circle id="meta-marble-ball" cx="70" cy="85" r="10" fill="var(--accent)"/>
+                <circle cx="110" cy="110" r="3" fill="var(--emerald)"/>
+                <text x="110" y="125" text-anchor="middle" font-size="8" fill="var(--emerald)" font-weight="700">Valley Minimum</text>
+              </svg>
+              <div id="meta-marble-out" style="font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.4rem;">
+                Position: <b>&theta; = -1.20</b> | Velocity: <b>v = +0.30</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tab 6: Corporate Megaphone -->
+      <div class="metaphor-pane" id="meta-megaphone" style="display: none;">
+        <div style="background: var(--surface-2); padding: 1.25rem; border-radius: var(--radius); border-left: 4px solid var(--rose); margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.6rem;">
+            <div>
+              <span style="font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--rose); letter-spacing: 0.08em;">BACKPROPAGATION &middot; ERROR DELEGATION</span>
+              <h3 style="margin: 0.2rem 0; font-size: 1.2rem;">The Corporate Blame Megaphone</h3>
+            </div>
+            <a class="btn primary" href="chapters/06-backpropagation.html#bp-stepper" style="font-size: 0.82rem; padding: 0.35rem 0.75rem;">Open Full Chapter 6 Backprop Stepper &rarr;</a>
+          </div>
+          <p style="font-size: 0.92rem; color: var(--ink-soft); line-height: 1.6; margin: 0 0 0.8rem;">
+            When the company's final product fails at the customer delivery dock (output error \(\delta^L\)),
+            the executive uses a megaphone to shout back down the hierarchy. Each department manager shares blame with their staff proportional to their connection weight!
+          </p>
+          <div style="font-family: var(--font-mono); font-size: 0.86rem; background: var(--paper); padding: 0.5rem 0.8rem; border-radius: 6px; border: 1px solid var(--rule); margin-bottom: 1rem;">
+            \(\delta^l = ((W^{l+1})^\top \delta^{l+1}) \odot \phi'(z^l), \quad \nabla_{W^l} C = \delta^l (\mathbf{a}^{l-1})^\top\)
+          </div>
+
+          <!-- Live Interactive Megaphone Controls -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); gap: 1.2rem; align-items: center; background: var(--paper); padding: 1rem; border-radius: 8px; border: 1px solid var(--rule);">
+            <div class="controls" style="display: flex; flex-direction: column; gap: 0.7rem;">
+              <label>Customer Delivery Error (&delta;ᴸ): <output id="meta-delta-val">2.0</output>
+                <input id="meta-delta" type="range" min="-4" max="4" step="0.2" value="2.0" oninput="updateMetaMegaphone()">
+              </label>
+              <label>Manager Transmission Weight (W): <output id="meta-w-val">-1.20</output>
+                <input id="meta-w" type="range" min="-2" max="2" step="0.1" value="-1.20" oninput="updateMetaMegaphone()">
+              </label>
+            </div>
+            <div style="text-align: center;">
+              <svg id="meta-mega-svg" viewBox="0 0 220 130" width="100%" height="130">
+                <!-- Megaphone right facing left -->
+                <polygon points="175,45 135,55 135,75 175,85" fill="var(--rose)" opacity="0.85"/>
+                <rect x="175" y="55" width="18" height="20" rx="3" fill="var(--rose)"/>
+                <text x="184" y="68" text-anchor="middle" font-size="8" fill="#fff" font-weight="700">&delta;ᴸ</text>
+                <!-- Soundwaves backwards -->
+                <path id="meta-wave-1" d="M 120,48 A 20 20 0 0 0 120,82" fill="none" stroke="var(--rose)" stroke-width="3"/>
+                <path id="meta-wave-2" d="M 95,38 A 38 38 0 0 0 95,92" fill="none" stroke="var(--rose)" stroke-width="2.5" stroke-dasharray="4 3"/>
+                <!-- Worker Nodes on Left -->
+                <circle cx="45" cy="45" r="10" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+                <text x="45" y="49" text-anchor="middle" font-size="8" fill="var(--accent)" font-weight="700">W₁</text>
+                <circle cx="45" cy="85" r="10" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="2"/>
+                <text x="45" y="89" text-anchor="middle" font-size="8" fill="var(--accent)" font-weight="700">W₂</text>
+              </svg>
+              <div id="meta-mega-out" style="font-family: var(--font-mono); font-size: 0.85rem; margin-top: 0.4rem;">
+                Delegated Blame: <b>&delta;ˡ = -2.400</b> | Weight Gradient: <b>&part;C/&part;W = +3.000</b>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- Inline Direct Metaphor Tab Engine & Live Mini-Widgets -->
+  <script>
+    function switchMetaphorTab(targetId, btn) {
+      var bar = document.getElementById('metaphor-tab-bar');
+      if (bar) {
+        var allTabs = bar.querySelectorAll('.metaphor-tab');
+        for (var i = 0; i < allTabs.length; i++) {
+          allTabs[i].classList.remove('active');
+        }
+      }
+      var allPanes = document.querySelectorAll('.metaphor-pane');
+      for (var j = 0; j < allPanes.length; j++) {
+        allPanes[j].style.display = 'none';
+      }
+      if (btn) {
+        btn.classList.add('active');
+      } else {
+        var match = document.querySelector('.metaphor-tab[data-target="' + targetId + '"]');
+        if (match) match.classList.add('active');
+      }
+      var target = document.getElementById(targetId);
+      if (target) {
+        target.style.display = 'block';
+        if (window.MathJax && window.MathJax.typesetPromise) {
+          window.MathJax.typesetPromise([target]).catch(function(){});
+        }
+      }
+    }
+
+    // Mini-Simulator 1: Audio Console
+    function updateMetaAudio() {
+      var w1El = document.getElementById('meta-w1'), w2El = document.getElementById('meta-w2'), bEl = document.getElementById('meta-b');
+      if (!w1El) return;
+      var w1 = +w1El.value, w2 = +w2El.value, b = +bEl.value;
+      var x1 = 2.0, x2 = 1.0;
+      var z = w1 * x1 + w2 * x2 + b;
+      document.getElementById('meta-w1-val').textContent = w1.toFixed(2);
+      document.getElementById('meta-w2-val').textContent = w2.toFixed(2);
+      document.getElementById('meta-b-val').textContent = b.toFixed(2);
+      document.getElementById('meta-audio-out').innerHTML = 'Acoustic Sum: <b>z = ' + z.toFixed(2) + '</b>';
+      // Animate SVG fader handles
+      var f1 = document.getElementById('meta-fader-1'), f2 = document.getElementById('meta-fader-2'), fb = document.getElementById('meta-fader-b');
+      if (f1) f1.setAttribute('y', 65 - w1 * 18);
+      if (f2) f2.setAttribute('y', 65 - w2 * 18);
+      if (fb) fb.setAttribute('y', 65 - b * 18);
+      var vu = document.getElementById('meta-vu-bar');
+      if (vu) {
+        var h = Math.min(65, Math.max(5, Math.abs(z) * 12));
+        vu.setAttribute('height', h);
+        vu.setAttribute('y', 98 - h);
+        vu.setAttribute('fill', z > 2.5 ? 'var(--rose)' : (z > 1.2 ? 'var(--amber)' : 'var(--emerald)'));
+      }
+    }
+
+    // Mini-Simulator 2: Mountain Compass
+    function updateMetaCompass() {
+      var x1El = document.getElementById('meta-x1'), x2El = document.getElementById('meta-x2');
+      if (!x1El) return;
+      var x1 = +x1El.value, x2 = +x2El.value;
+      var df1 = 2 * x1, df2 = 4 * x2;
+      document.getElementById('meta-x1-val').textContent = x1.toFixed(1);
+      document.getElementById('meta-x2-val').textContent = x2.toFixed(1);
+      document.getElementById('meta-compass-out').innerHTML =
+        '<span style="color:var(--rose)">▲ ∇f = [' + df1.toFixed(1) + ', ' + df2.toFixed(1) + ']</span> | ' +
+        '<span style="color:var(--emerald)">▼ -∇f = [' + (-df1).toFixed(1) + ', ' + (-df2).toFixed(1) + ']</span>';
+      var angleDeg = Math.atan2(df2, df1) * 180 / Math.PI - 90;
+      var needle = document.getElementById('meta-compass-needle');
+      if (needle) needle.setAttribute('transform', 'rotate(' + angleDeg.toFixed(1) + ', 100, 65)');
+    }
+
+    // Mini-Simulator 3: Mechanical Gears
+    function updateMetaGears() {
+      var naEl = document.getElementById('meta-na'), nbEl = document.getElementById('meta-nb'), ncEl = document.getElementById('meta-nc');
+      if (!naEl) return;
+      var na = +naEl.value, nb = +nbEl.value, nc = +ncEl.value;
+      document.getElementById('meta-na-val').textContent = na;
+      document.getElementById('meta-nb-val').textContent = nb;
+      document.getElementById('meta-nc-val').textContent = nc;
+      var rTotal = na / nc;
+      document.getElementById('meta-gears-out').innerHTML =
+        'Ratio: <b>dz/dx = +' + na + '/' + nc + ' = +' + rTotal.toFixed(3) + '</b> (B cancelled!)';
+      var ga = document.getElementById('meta-gear-a'), gb = document.getElementById('meta-gear-b'), gc = document.getElementById('meta-gear-c');
+      if (ga) ga.setAttribute('r', na * 1.5);
+      if (gb) gb.setAttribute('r', nb * 1.0);
+      if (gc) gc.setAttribute('r', nc * 1.4);
+    }
+
+    // Mini-Simulator 4: Hydraulic Valve
+    function updateMetaValve() {
+      var zEl = document.getElementById('meta-valve-z'), tEl = document.getElementById('meta-valve-type');
+      if (!zEl) return;
+      var z = +zEl.value, type = tEl ? tEl.value : 'relu';
+      document.getElementById('meta-valve-z-val').textContent = z.toFixed(1);
+      var a = type === 'relu' ? Math.max(0, z) : (1 / (1 + Math.exp(-z)));
+      var da = type === 'relu' ? (z > 0 ? 1 : 0) : (a * (1 - a));
+      document.getElementById('meta-valve-out').innerHTML =
+        'Discharged Flow: <b>a = ' + a.toFixed(3) + '</b> | Local Slope: <b>&phi;\'(z) = ' + da.toFixed(3) + '</b>';
+      var gate = document.getElementById('meta-gate-line'), txt = document.getElementById('meta-valve-text'), water = document.getElementById('meta-water-flow');
+      if (type === 'relu') {
+        if (z <= 0) {
+          if (gate) { gate.setAttribute('y2', 82); gate.setAttribute('stroke', 'var(--rose)'); }
+          if (txt) { txt.textContent = 'SHUT (z ≤ 0, a = 0)'; txt.setAttribute('fill', 'var(--rose)'); }
+          if (water) water.setAttribute('width', 80);
+        } else {
+          if (gate) { gate.setAttribute('y2', Math.max(35, 75 - z * 10)); gate.setAttribute('stroke', 'var(--emerald)'); }
+          if (txt) { txt.textContent = 'OPEN (Flow > 0)'; txt.setAttribute('fill', 'var(--emerald)'); }
+          if (water) water.setAttribute('width', 170);
+        }
+      } else {
+        if (gate) { gate.setAttribute('y2', 75 - a * 30); gate.setAttribute('stroke', 'var(--cyan)'); }
+        if (txt) { txt.textContent = 'Sigmoid Gate: ' + a.toFixed(2); txt.setAttribute('fill', 'var(--cyan)'); }
+        if (water) water.setAttribute('width', 50 + a * 120);
+      }
+    }
+
+    // Mini-Simulator 5: Rolling Marble
+    var metaMarblePos = -1.2, metaMarbleVel = 0.3;
+    function updateMetaMarble() {
+      var gEl = document.getElementById('meta-grad'), mEl = document.getElementById('meta-mom');
+      if (!gEl) return;
+      document.getElementById('meta-grad-val').textContent = (+gEl.value).toFixed(2);
+      document.getElementById('meta-mom-val').textContent = (+mEl.value).toFixed(2);
+      renderMarbleBall();
+    }
+    function renderMarbleBall() {
+      var ball = document.getElementById('meta-marble-ball');
+      if (ball) {
+        var cx = 110 + metaMarblePos * 40;
+        var cy = 110 - Math.cos((metaMarblePos / 2.5) * (Math.PI / 2)) * 40;
+        ball.setAttribute('cx', Math.min(190, Math.max(30, cx)));
+        ball.setAttribute('cy', Math.min(110, Math.max(45, cy)));
+      }
+      var out = document.getElementById('meta-marble-out');
+      if (out) {
+        out.innerHTML = 'Position: <b>&theta; = ' + metaMarblePos.toFixed(2) + '</b> | Velocity: <b>v = ' + metaMarbleVel.toFixed(2) + '</b>';
+      }
+    }
+    function stepMetaMarble() {
+      var g = +(document.getElementById('meta-grad')?.value || -1.5);
+      var beta = +(document.getElementById('meta-mom')?.value || 0.8);
+      metaMarbleVel = beta * metaMarbleVel - 0.2 * g;
+      metaMarblePos += metaMarbleVel;
+      if (metaMarblePos > 2.0) { metaMarblePos = 2.0; metaMarbleVel = -metaMarbleVel * 0.5; }
+      if (metaMarblePos < -2.0) { metaMarblePos = -2.0; metaMarbleVel = -metaMarbleVel * 0.5; }
+      renderMarbleBall();
+    }
+    function shakeMetaMarble() {
+      metaMarbleVel += (Math.random() - 0.5) * 1.5;
+      stepMetaMarble();
+    }
+
+    // Mini-Simulator 6: Corporate Megaphone
+    function updateMetaMegaphone() {
+      var dEl = document.getElementById('meta-delta'), wEl = document.getElementById('meta-w');
+      if (!dEl) return;
+      var d = +dEl.value, w = +wEl.value;
+      document.getElementById('meta-delta-val').textContent = d.toFixed(1);
+      document.getElementById('meta-w-val').textContent = w.toFixed(2);
+      var delegated = w * d;
+      var gradW = d * 1.5;
+      document.getElementById('meta-mega-out').innerHTML =
+        'Delegated Blame: <b>&delta;ˡ = ' + delegated.toFixed(3) + '</b> | Weight Gradient: <b>&part;C/&part;W = ' + gradW.toFixed(3) + '</b>';
+      var w1 = document.getElementById('meta-wave-1'), w2 = document.getElementById('meta-wave-2');
+      var waveScale = Math.min(5, Math.max(1.5, Math.abs(d) * 1.5));
+      if (w1) w1.setAttribute('stroke-width', waveScale);
+      if (w2) w2.setAttribute('stroke-width', waveScale * 0.7);
+    }
+
+    // Initialize all mini-widgets immediately
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', function() {
+        updateMetaAudio(); updateMetaCompass(); updateMetaGears(); updateMetaValve(); updateMetaMarble(); updateMetaMegaphone();
+      });
+    } else {
+      updateMetaAudio(); updateMetaCompass(); updateMetaGears(); updateMetaValve(); updateMetaMarble(); updateMetaMegaphone();
+    }
+  </script>
+
+  <h2 id="chapters">The sequence</h2>
+  <div class="toc-grid">
+
+    <a class="toc-card" href="chapters/01-foundations.html">
+      <span class="num">CHAPTER 01 &middot; INTERACTIVE BUILDER</span>
+      <h3>Foundations and notation</h3>
+      <p>What a network is as a mathematical object, the audio mixing board intuition, and the destination-first index conventions.</p>
+      <ul><li>Interactive Architecture &amp; Matrix Shape Builder</li><li>Audio mixing console physical analogy</li><li>Why destination-first indexing prevents transposes</li></ul>
+    </a>
+
+    <a class="toc-card" href="chapters/02-matrix-calculus.html">
+      <span class="num">CHAPTER 02 &middot; 2D VECTOR FIELD &amp; JACOBIAN</span>
+      <h3>The matrix calculus toolkit</h3>
+      <p>Gradients as steep mountain compasses, Jacobians as elastic space distortions, and chain-rule gear trains.</p>
+      <ul><li>Interactive 2D Contour &amp; Gradient Vector Field</li><li>Interactive Jacobian Space Deformer</li><li>Mechanical gear train physical analogy</li></ul>
+    </a>
+
+    <a class="toc-card" href="chapters/03-networks-as-equations.html">
+      <span class="num">CHAPTER 03 &middot; ACTIVATION LAB</span>
+      <h3>Neurons, layers, forward propagation</h3>
+      <p>From water pipes and pressure-relief valves to layer matrices, with a live activation curve comparator.</p>
+      <ul><li>Physical water valve &amp; reservoir model</li><li>Interactive Activation Curve &amp; Tangent Slope Explorer</li><li>Matrix-vector forward propagation worked by hand</li></ul>
+    </a>
+
+    <a class="toc-card" href="chapters/04-neuron-derivatives.html">
+      <span class="num">CHAPTER 04 &middot; CHAIN RULE MICROSCOPE</span>
+      <h3>Differentiating a single neuron</h3>
+      <p>The complete mechanical chain rule derivation, electrical diode analogies, dying ReLU, and live gradient verification.</p>
+      <ul><li>Interactive Sensitivity &amp; Perturbation Microscope</li><li>Blown fuse &amp; diode circuit physical analogy</li><li>Numerical vs analytical gradient checking</li></ul>
+    </a>
+
+    <a class="toc-card" href="chapters/05-gradient-descent.html">
+      <span class="num">CHAPTER 05 &middot; PHYSICS OPTIMIZATION ARENA</span>
+      <h3>Gradient descent</h3>
+      <p>Why negative gradients are gravity, what friction and momentum do, and how learning rates govern stability.</p>
+      <ul><li>2D Rolling Marble Physics Simulation Arena</li><li>Optimal vs Oscillating vs Diverging trajectories</li><li>Batch vs Mini-batch vs Stochastic dynamics</li></ul>
+    </a>
+
+    <a class="toc-card" href="chapters/06-backpropagation.html">
+      <span class="num">CHAPTER 06 &middot; STEPPER &amp; XOR LAB</span>
+      <h3>Backpropagation</h3>
+      <p>The corporate blame distribution model, the four fundamental equations (BP1–BP4), and live 2D decision boundary training.</p>
+      <ul><li>Interactive Step-by-Step Backpropagation Walkthrough</li><li>Live XOR 2D Classification Boundary Heatmap</li><li>Vanishing gradient waterfall visualization</li></ul>
+    </a>
+
+    <a class="toc-card" href="chapters/07-reference.html">
+      <span class="num">CHAPTER 07 &middot; SHAPE CALCULATOR</span>
+      <h3>Reference &amp; shape ledger</h3>
+      <p>Interactive tensor dimension calculator, visual cheatsheet blueprint, notation glossary, and formula sheet.</p>
+      <ul><li>Interactive Tensor Dimension &amp; Parameter Calculator</li><li>Complete shape verification ledger</li><li>Notation and formula quick-lookup table</li></ul>
+    </a>
+
+  </div>
+
+  <h2 id="spine">The whole argument in eight lines</h2>
+  <ol class="spine">
+    <li>A neural network is a composition of functions; its parameters are the weights and biases.</li>
+    <li>A neuron computes \(z=\mathbf w\T\mathbf x+b\), then \(a=\phi(z)\).</li>
+    <li>A layer computes \(z^l=W^l a^{l-1}+b^l\), then \(a^l=\phi(z^l)\).</li>
+    <li>A cost function \(C\) reduces the whole network's output to one number worth minimising.</li>
+    <li>Training asks one question about every parameter: how much does \(C\) change if I change it?</li>
+    <li>Backpropagation answers that question for all parameters at once, by pushing the chain rule backwards.</li>
+    <li>The answers assemble into a single gradient vector \(\nabla_\theta C\).</li>
+    <li>Gradient descent steps against it — \(\theta \leftarrow \theta - \eta\nabla_\theta C\) — and the loop repeats.</li>
+  </ol>
+
+  <h2 id="howto">How to use this</h2>
+  <p>The chapters are ordered by dependency, not by difficulty. Chapter 4 is the steepest climb and
+  chapter 6 is the payoff; skipping 4 makes 6 look like magic, which defeats the point.</p>
+  <p>Three habits make the material go down far more easily:</p>
+  <ul>
+    <li><strong>Write the shape of every object before differentiating it.</strong> Most confusion in
+    this subject is a transpose in the wrong place, and shapes catch that immediately. The green
+    <em>shape check</em> boxes throughout do this deliberately.</li>
+    <li><strong>Do the derivations on paper.</strong> Reading a chain rule is not the same as running it.</li>
+    <li><strong>Answer the self-checks before opening them.</strong> They sit at the end of each chapter.</li>
+  </ul>
+  <p>Everything is static HTML, CSS and JavaScript with MathJax for typesetting. Open
+  <code>index.html</code> directly or serve the folder; there is nothing to build.</p>
+
+</main>
+
+<footer class="site">
+  <div class="inner">
+    <div><strong>Mathematics of Neural Networks</strong> &middot; a visual study guide</div>
+    <div>MIT licensed &middot; Open Educational Resource</div>
+  </div>
+</footer>
+
+<script src="js/main.js?v=2.2"></script>
+</body>
+</html>
