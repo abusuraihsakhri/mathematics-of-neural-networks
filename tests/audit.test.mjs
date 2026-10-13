@@ -157,6 +157,7 @@ test('All chapters initialize and principal simulator actions run', () => {
 
 test('Zero ReLU gradient is not mistaken for a matched target', () => {
   const dom = boot(contents[0].html);
+  dom.get('mn-act').value = 'relu';
   dom.get('mn-w1').value = '-1';
   dom.get('mn-w2').value = '-1';
   dom.get('mn-b').value = '-1';
