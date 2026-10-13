@@ -72,7 +72,10 @@
       btn.setAttribute('aria-expanded', String(!open));
     });
     bar.addEventListener('click', function (e) {
-      if (e.target.closest('a')) bar.dataset.open = 'false';
+      if (e.target.closest('a')) {
+        bar.dataset.open = 'false';
+        btn.setAttribute('aria-expanded', 'false');
+      }
     });
   }());
 
@@ -149,9 +152,10 @@
           '&part;C/&part;w\u2081 = <code>' + dC_dw1.toFixed(3) + '</code> &middot; ' +
           '&part;C/&part;w\u2082 = <code>' + dC_dw2.toFixed(3) + '</code> &middot; ' +
           '&part;C/&part;b = <code>' + dC_db.toFixed(3) + '</code><br>' +
-          (Math.abs(delta) < 0.005 ? '<span style="color:var(--emerald)">&#10003; Target matched! Cost is minimal.</span>' :
-          (act === 'relu' && z <= 0 ? '<span style="color:var(--rose)">&#9888; Dying ReLU: z &le; 0. Local derivative is 0, so weight updates are completely frozen!</span>' :
-          'Click <b>Step 1 Gradient Descent Step</b> to nudge weights against the gradient and watch error drop.')) +
+          (cost < 0.0001 ? '<span style="color:var(--emerald)">&#10003; Output is close to target (low loss).</span>' :
+          (act === 'relu' && z <= 0 ? '<span style="color:var(--rose)">&#9888; Inactive ReLU: z &le; 0. The local derivative is 0, so gradient updates cannot reduce this nonzero loss.</span>' :
+          (Math.abs(delta) < 0.005 ? '<span style="color:var(--rose)">&#9888; Small gradient despite nonzero loss; the activation may be saturated.</span>' :
+          'Click <b>Step 1 Gradient Descent Step</b> to update weights against the gradient.'))) +
         '</div>';
     }
 
@@ -339,13 +343,18 @@
         var lev = levels[li];
         ctx.strokeStyle = css('--rule-firm');
         ctx.beginPath();
-        for (var a = 0; a <= 360; a += 5) {
-          var rad = a * Math.PI / 180;
-          var rx = Math.cos(rad) * Math.sqrt(2 * lev);
-          var ry = Math.sin(rad) * Math.sqrt(2 * lev / 2.5);
-          var p = toScreen(rx, ry, w, h);
-          if (a === 0) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
-        }
+        // Solve f(x,y) = x²/2 + 1.25y² - cos(2x)/4 = lev for y.
+        [-1, 1].forEach(function (sign) {
+          var drawing = false;
+          for (var xi = 0; xi <= 240; xi++) {
+            var x = -3 + xi * 6 / 240;
+            var ySquared = (lev - 0.5 * x * x + 0.25 * Math.cos(2 * x)) / 1.25;
+            if (ySquared < 0) { drawing = false; continue; }
+            var p = toScreen(x, sign * Math.sqrt(ySquared), w, h);
+            if (!drawing) ctx.moveTo(p[0], p[1]); else ctx.lineTo(p[0], p[1]);
+            drawing = true;
+          }
+        });
         ctx.stroke();
       }
 
@@ -408,8 +417,8 @@
 
     function handlePointer(e) {
       var rect = canvas.getBoundingClientRect();
-      var px = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-      var py = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+      var px = e.clientX - rect.left;
+      var py = e.clientY - rect.top;
       var world = toWorld(px, py, canvas.width, canvas.height);
       curX = Math.max(-2.8, Math.min(2.8, world[0]));
       curY = Math.max(-2.8, Math.min(2.8, world[1]));
@@ -477,10 +486,10 @@
       ctx.lineWidth = 1;
       ctx.strokeStyle = css('--rule-firm');
       ctx.beginPath();
-      ctx.moveTo(rightCX - t1[0] - t2[0], cy + t1[1] + t2[1]);
-      ctx.lineTo(rightCX + t1[0] - t2[0], cy - t1[1] + t2[1]);
-      ctx.lineTo(rightCX + t1[0] + t2[0], cy - t1[1] - t2[1]);
-      ctx.lineTo(rightCX - t1[0] + t2[0], cy + t1[1] - t2[1]);
+      ctx.moveTo(rightCX - t1[0] - t2[0], cy - t1[1] - t2[1]);
+      ctx.lineTo(rightCX + t1[0] - t2[0], cy + t1[1] - t2[1]);
+      ctx.lineTo(rightCX + t1[0] + t2[0], cy + t1[1] + t2[1]);
+      ctx.lineTo(rightCX - t1[0] + t2[0], cy - t1[1] + t2[1]);
       ctx.closePath();
       ctx.stroke();
 
@@ -924,7 +933,7 @@
       ctx.strokeRect(centerP[0] - 4, centerP[1] - 4, 8, 8);
 
       var cVal = cost(pos[0], pos[1]);
-      var diverging = !isFinite(pos[0]) || Math.abs(pos[0]) > 20;
+      var diverging = !isFinite(pos[0]) || !isFinite(pos[1]) || Math.abs(pos[0]) > 20 || Math.abs(pos[1]) > 20;
       if (infoEl) {
         infoEl.innerHTML =
           '<div class="metrics">' +
@@ -941,8 +950,12 @@
     function loop() {
       if (isPlaying) {
         stepPhysics();
+        if (!isFinite(pos[0]) || !isFinite(pos[1]) || Math.abs(pos[0]) > 20 || Math.abs(pos[1]) > 20) {
+          isPlaying = false;
+          if (playBtn) playBtn.textContent = 'Simulate Roll';
+        }
         draw();
-        animFrame = requestAnimationFrame(loop);
+        if (isPlaying) animFrame = requestAnimationFrame(loop);
       }
     }
 
@@ -975,8 +988,8 @@
 
     canvas.addEventListener('pointerdown', function (e) {
       var rect = canvas.getBoundingClientRect();
-      var px = (e.clientX || (e.touches && e.touches[0].clientX)) - rect.left;
-      var py = (e.clientY || (e.touches && e.touches[0].clientY)) - rect.top;
+      var px = e.clientX - rect.left;
+      var py = e.clientY - rect.top;
       var world = toWorld(px, py, canvas.width, canvas.height);
       pos = [world[0], world[1]];
       vel = [0, 0];
@@ -1623,7 +1636,7 @@
           '<div class="readout">' +
             (mode === 'relu' && z <= 0 ?
               '<span style="color:var(--rose)">&#9888; <b>Valve Held Shut:</b> Chamber pressure (' + z.toFixed(2) + ') &le; 0. Spring force holds the valve clamped tight. Zero water discharged (a = 0). Local derivative &phi;\'(z) is 0!</span>' :
-              '<span style="color:var(--emerald)">&#10003; <b>Valve Open:</b> Chamber pressure overcomes the spring! Discharged water flow equals ' + a.toFixed(3) + ' L/s with full sensitivity &phi;\'(z) = 1.</span>') +
+              '<span style="color:var(--emerald)">&#10003; <b>' + (mode === 'relu' ? 'Valve Open:' : 'Sigmoid Gate:') + '</b> Discharged flow is ' + a.toFixed(3) + ' L/s. Local sensitivity &phi;\'(z) = ' + (mode === 'relu' ? '1' : (a * (1 - a)).toFixed(3)) + '.</span>') +
           '</div>';
       }
     }
